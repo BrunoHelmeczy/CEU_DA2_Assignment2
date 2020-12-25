@@ -1,0 +1,225 @@
+"","Team","Opponent","Team_Outcome","Team_Score","Opp_Score","Winner","Week","Difference"
+"1","Houston","Kansas City","Loss",20,34,"Home","Wk 1",-14
+"2","Seattle","Atlanta","Win",38,25,"Away","Wk 1",13
+"3","New York Jets","Buffalo","Loss",17,27,"Home","Wk 1",-10
+"4","Chicago","Detroit","Win",27,23,"Away","Wk 1",4
+"5","Green Bay","Minnesota","Win",43,34,"Away","Wk 1",9
+"6","Miami","New England","Loss",11,21,"Home","Wk 1",-10
+"7","Philadelphia","Washington","Loss",17,27,"Home","Wk 1",-10
+"8","Las Vegas","Carolina","Win",34,30,"Away","Wk 1",4
+"9","Indianapolis","Jacksonville","Loss",20,27,"Home","Wk 1",-7
+"10","Cleveland","Baltimore","Loss",6,38,"Home","Wk 1",-32
+"11","Los Angeles Chargers","Cincinnati","Win",16,13,"Away","Wk 1",3
+"12","Tampa Bay","New Orleans","Loss",23,34,"Home","Wk 1",-11
+"13","Arizona","San Francisco","Win",24,20,"Away","Wk 1",4
+"14","Dallas","Los Angeles Rams","Loss",17,20,"Home","Wk 1",-3
+"15","Pittsburgh","New York Giants","Win",26,16,"Away","Wk 1",10
+"16","Tennessee","Denver","Win",16,14,"Away","Wk 1",2
+"17","Cincinnati","Cleveland","Loss",30,35,"Home","Wk 2",-5
+"18","New York Giants","Chicago","Loss",13,17,"Home","Wk 2",-4
+"19","Atlanta","Dallas","Loss",39,40,"Home","Wk 2",-1
+"20","Detroit","Green Bay","Loss",21,42,"Home","Wk 2",-21
+"21","Jacksonville","Tennessee","Loss",30,33,"Home","Wk 2",-3
+"22","Minnesota","Indianapolis","Loss",11,28,"Home","Wk 2",-17
+"23","Buffalo","Miami","Win",31,28,"Away","Wk 2",3
+"24","San Francisco","New York Jets","Win",31,13,"Away","Wk 2",18
+"25","Los Angeles Rams","Philadelphia","Win",37,19,"Away","Wk 2",18
+"26","Denver","Pittsburgh","Loss",21,26,"Home","Wk 2",-5
+"27","Carolina","Tampa Bay","Loss",17,31,"Home","Wk 2",-14
+"28","Washington","Arizona","Loss",15,30,"Home","Wk 2",-15
+"29","Kansas City","Los Angeles Chargers","Win",23,20,"Away","Wk 2",3
+"30","Baltimore","Houston","Win",33,16,"Away","Wk 2",17
+"31","New England","Seattle","Loss",30,35,"Home","Wk 2",-5
+"32","New Orleans","Las Vegas","Loss",24,34,"Home","Wk 2",-10
+"33","Miami","Jacksonville","Win",31,13,"Away","Wk 3",18
+"34","Chicago","Atlanta","Win",30,26,"Away","Wk 3",4
+"35","Los Angeles Rams","Buffalo","Loss",32,35,"Home","Wk 3",-3
+"36","Washington","Cleveland","Loss",20,34,"Home","Wk 3",-14
+"37","Tennessee","Minnesota","Win",31,30,"Away","Wk 3",1
+"38","Las Vegas","New England","Loss",20,36,"Home","Wk 3",-16
+"39","San Francisco","New York Giants","Win",36,9,"Away","Wk 3",27
+"40","Cincinnati","Philadelphia","Loss",23,23,"Tie","Wk 3",0
+"41","Houston","Pittsburgh","Loss",21,28,"Home","Wk 3",-7
+"42","New York Jets","Indianapolis","Loss",7,36,"Home","Wk 3",-29
+"43","Carolina","Los Angeles Chargers","Win",21,16,"Away","Wk 3",5
+"44","Tampa Bay","Denver","Win",28,10,"Away","Wk 3",18
+"45","Detroit","Arizona","Win",26,23,"Away","Wk 3",3
+"46","Dallas","Seattle","Loss",31,38,"Home","Wk 3",-7
+"47","Green Bay","New Orleans","Win",37,30,"Away","Wk 3",7
+"48","Kansas City","Baltimore","Win",34,20,"Away","Wk 3",14
+"49","Denver","New York Jets","Win",37,28,"Away","Wk 4",9
+"50","Jacksonville","Cincinnati","Loss",25,33,"Home","Wk 4",-8
+"51","Cleveland","Dallas","Win",49,38,"Away","Wk 4",11
+"52","New Orleans","Detroit","Win",35,29,"Away","Wk 4",6
+"53","Seattle","Miami","Win",31,23,"Away","Wk 4",8
+"54","Los Angeles Chargers","Tampa Bay","Loss",31,38,"Home","Wk 4",-7
+"55","Baltimore","Washington","Win",31,17,"Away","Wk 4",14
+"56","Arizona","Carolina","Loss",21,31,"Home","Wk 4",-10
+"57","Minnesota","Houston","Win",31,23,"Away","Wk 4",8
+"58","New York Giants","Los Angeles Rams","Loss",9,17,"Home","Wk 4",-8
+"59","Indianapolis","Chicago","Win",19,11,"Away","Wk 4",8
+"60","Buffalo","Las Vegas","Win",30,23,"Away","Wk 4",7
+"61","Philadelphia","San Francisco","Win",25,20,"Away","Wk 4",5
+"62","New England","Kansas City","Loss",10,26,"Home","Wk 4",-16
+"63","Atlanta","Green Bay","Loss",16,30,"Home","Wk 4",-14
+"64","Tampa Bay","Chicago","Loss",19,20,"Home","Wk 5",-1
+"65","Carolina","Atlanta","Win",23,16,"Away","Wk 5",7
+"66","Las Vegas","Kansas City","Win",40,32,"Away","Wk 5",8
+"67","Arizona","New York Jets","Win",30,10,"Away","Wk 5",20
+"68","Philadelphia","Pittsburgh","Loss",29,38,"Home","Wk 5",-9
+"69","Los Angeles Rams","Washington","Win",30,10,"Away","Wk 5",20
+"70","Cincinnati","Baltimore","Loss",3,27,"Home","Wk 5",-24
+"71","Jacksonville","Houston","Loss",14,30,"Home","Wk 5",-16
+"72","Miami","San Francisco","Win",43,17,"Away","Wk 5",26
+"73","Indianapolis","Cleveland","Loss",23,32,"Home","Wk 5",-9
+"74","New York Giants","Dallas","Loss",34,37,"Home","Wk 5",-3
+"75","Minnesota","Seattle","Loss",26,27,"Home","Wk 5",-1
+"76","Los Angeles Chargers","New Orleans","Loss",27,30,"Home","Wk 5",-3
+"77","Buffalo","Tennessee","Loss",16,42,"Home","Wk 5",-26
+"78","Houston","Tennessee","Loss",36,42,"Home","Wk 6",-6
+"79","Cincinnati","Indianapolis","Loss",27,31,"Home","Wk 6",-4
+"80","Atlanta","Minnesota","Win",40,23,"Away","Wk 6",17
+"81","Denver","New England","Win",18,12,"Away","Wk 6",6
+"82","Washington","New York Giants","Loss",19,20,"Home","Wk 6",-1
+"83","Baltimore","Philadelphia","Win",30,28,"Away","Wk 6",2
+"84","Cleveland","Pittsburgh","Loss",7,38,"Home","Wk 6",-31
+"85","Chicago","Carolina","Win",23,16,"Away","Wk 6",7
+"86","Detroit","Jacksonville","Win",34,16,"Away","Wk 6",18
+"87","New York Jets","Miami","Loss",0,24,"Home","Wk 6",-24
+"88","Green Bay","Tampa Bay","Loss",10,38,"Home","Wk 6",-28
+"89","Los Angeles Rams","San Francisco","Loss",16,24,"Home","Wk 6",-8
+"90","Kansas City","Buffalo","Win",26,17,"Away","Wk 6",9
+"91","Arizona","Dallas","Win",38,10,"Away","Wk 6",28
+"92","New York Giants","Philadelphia","Loss",21,22,"Home","Wk 7",-1
+"93","Detroit","Atlanta","Win",23,22,"Away","Wk 7",1
+"94","Cleveland","Cincinnati","Win",37,34,"Away","Wk 7",3
+"95","Pittsburgh","Tennessee","Win",27,24,"Away","Wk 7",3
+"96","Carolina","New Orleans","Loss",24,27,"Home","Wk 7",-3
+"97","Buffalo","New York Jets","Win",18,10,"Away","Wk 7",8
+"98","Dallas","Washington","Loss",3,25,"Home","Wk 7",-22
+"99","Green Bay","Houston","Win",35,20,"Away","Wk 7",15
+"100","Tampa Bay","Las Vegas","Win",45,20,"Away","Wk 7",25
+"101","Kansas City","Denver","Win",43,16,"Away","Wk 7",27
+"102","San Francisco","New England","Win",33,6,"Away","Wk 7",27
+"103","Jacksonville","Los Angeles Chargers","Loss",29,39,"Home","Wk 7",-10
+"104","Seattle","Arizona","Loss",34,37,"Home","Wk 7",-3
+"105","Chicago","Los Angeles Rams","Loss",10,24,"Home","Wk 7",-14
+"106","Atlanta","Carolina","Win",25,17,"Away","Wk 8",8
+"107","New England","Buffalo","Loss",21,24,"Home","Wk 8",-3
+"108","Tennessee","Cincinnati","Loss",20,31,"Home","Wk 8",-11
+"109","Las Vegas","Cleveland","Win",16,6,"Away","Wk 8",10
+"110","Indianapolis","Detroit","Win",41,21,"Away","Wk 8",20
+"111","Minnesota","Green Bay","Win",28,22,"Away","Wk 8",6
+"112","New York Jets","Kansas City","Loss",9,35,"Home","Wk 8",-26
+"113","Los Angeles Rams","Miami","Loss",17,28,"Home","Wk 8",-11
+"114","Pittsburgh","Baltimore","Win",28,24,"Away","Wk 8",4
+"115","Los Angeles Chargers","Denver","Loss",30,31,"Home","Wk 8",-1
+"116","New Orleans","Chicago","Win",26,23,"Away","Wk 8",3
+"117","San Francisco","Seattle","Loss",27,37,"Home","Wk 8",-10
+"118","Dallas","Philadelphia","Loss",9,23,"Home","Wk 8",-14
+"119","Tampa Bay","New York Giants","Win",25,23,"Away","Wk 8",2
+"120","Green Bay","San Francisco","Win",34,17,"Away","Wk 9",17
+"121","Denver","Atlanta","Loss",27,34,"Home","Wk 9",-7
+"122","Seattle","Buffalo","Loss",34,44,"Home","Wk 9",-10
+"123","Chicago","Tennessee","Loss",17,24,"Home","Wk 9",-7
+"124","Baltimore","Indianapolis","Win",24,10,"Away","Wk 9",14
+"125","Carolina","Kansas City","Loss",31,33,"Home","Wk 9",-2
+"126","Detroit","Minnesota","Loss",20,34,"Home","Wk 9",-14
+"127","New York Giants","Washington","Win",23,20,"Away","Wk 9",3
+"128","Houston","Jacksonville","Win",27,25,"Away","Wk 9",2
+"129","Las Vegas","Los Angeles Chargers","Win",31,26,"Away","Wk 9",5
+"130","Pittsburgh","Dallas","Win",24,19,"Away","Wk 9",5
+"131","Miami","Arizona","Win",34,31,"Away","Wk 9",3
+"132","New Orleans","Tampa Bay","Win",38,3,"Away","Wk 9",35
+"133","New England","New York Jets","Win",30,27,"Away","Wk 9",3
+"134","Indianapolis","Tennessee","Win",34,17,"Away","Wk 10",17
+"135","Houston","Cleveland","Loss",7,10,"Home","Wk 10",-3
+"136","Washington","Detroit","Loss",27,30,"Home","Wk 10",-3
+"137","Jacksonville","Green Bay","Loss",20,24,"Home","Wk 10",-4
+"138","Philadelphia","New York Giants","Loss",17,27,"Home","Wk 10",-10
+"139","Tampa Bay","Carolina","Win",46,23,"Away","Wk 10",23
+"140","Denver","Las Vegas","Loss",12,37,"Home","Wk 10",-25
+"141","Los Angeles Chargers","Miami","Loss",21,29,"Home","Wk 10",-8
+"142","Buffalo","Arizona","Loss",30,32,"Home","Wk 10",-2
+"143","Seattle","Los Angeles Rams","Loss",16,23,"Home","Wk 10",-7
+"144","San Francisco","New Orleans","Loss",13,27,"Home","Wk 10",-14
+"145","Cincinnati","Pittsburgh","Loss",10,36,"Home","Wk 10",-26
+"146","Baltimore","New England","Loss",17,23,"Home","Wk 10",-6
+"147","Minnesota","Chicago","Win",19,13,"Away","Wk 10",6
+"148","Arizona","Seattle","Loss",21,28,"Home","Wk 11",-7
+"149","Philadelphia","Cleveland","Loss",17,22,"Home","Wk 11",-5
+"150","Atlanta","New Orleans","Loss",9,24,"Home","Wk 11",-15
+"151","Cincinnati","Washington","Loss",9,20,"Home","Wk 11",-11
+"152","Detroit","Carolina","Loss",0,20,"Home","Wk 11",-20
+"153","Pittsburgh","Jacksonville","Win",27,3,"Away","Wk 11",24
+"154","Tennessee","Baltimore","Win",30,24,"Away","Wk 11",6
+"155","New England","Houston","Loss",20,27,"Home","Wk 11",-7
+"156","Miami","Denver","Loss",13,20,"Home","Wk 11",-7
+"157","New York Jets","Los Angeles Chargers","Loss",28,34,"Home","Wk 11",-6
+"158","Green Bay","Indianapolis","Loss",31,34,"Home","Wk 11",-3
+"159","Dallas","Minnesota","Win",31,28,"Away","Wk 11",3
+"160","Kansas City","Las Vegas","Win",35,31,"Away","Wk 11",4
+"161","Los Angeles Rams","Tampa Bay","Win",27,24,"Away","Wk 11",3
+"162","Houston","Detroit","Win",41,25,"Away","Wk 12",16
+"163","Washington","Dallas","Win",41,16,"Away","Wk 12",25
+"164","Las Vegas","Atlanta","Loss",6,43,"Home","Wk 12",-37
+"165","Los Angeles Chargers","Buffalo","Loss",17,27,"Home","Wk 12",-10
+"166","New York Giants","Cincinnati","Win",19,17,"Away","Wk 12",2
+"167","Tennessee","Indianapolis","Win",45,26,"Away","Wk 12",19
+"168","Carolina","Minnesota","Loss",27,28,"Home","Wk 12",-1
+"169","Arizona","New England","Loss",17,20,"Home","Wk 12",-3
+"170","Miami","New York Jets","Win",20,3,"Away","Wk 12",17
+"171","Cleveland","Jacksonville","Win",27,25,"Away","Wk 12",2
+"172","New Orleans","Denver","Win",31,3,"Away","Wk 12",28
+"173","San Francisco","Los Angeles Rams","Win",23,20,"Away","Wk 12",3
+"174","Kansas City","Tampa Bay","Win",27,24,"Away","Wk 12",3
+"175","Chicago","Green Bay","Loss",25,41,"Home","Wk 12",-16
+"176","Seattle","Philadelphia","Win",23,17,"Away","Wk 12",6
+"177","Baltimore","Pittsburgh","Loss",14,19,"Home","Wk 12",-5
+"178","New Orleans","Atlanta","Win",21,16,"Away","Wk 13",5
+"179","Detroit","Chicago","Win",34,30,"Away","Wk 13",4
+"180","Cleveland","Tennessee","Win",41,35,"Away","Wk 13",6
+"181","Cincinnati","Miami","Loss",7,19,"Home","Wk 13",-12
+"182","Jacksonville","Minnesota","Loss",24,27,"Home","Wk 13",-3
+"183","Las Vegas","New York Jets","Win",31,28,"Away","Wk 13",3
+"184","Indianapolis","Houston","Win",26,20,"Away","Wk 13",6
+"185","Los Angeles Rams","Arizona","Win",38,28,"Away","Wk 13",10
+"186","New York Giants","Seattle","Win",17,12,"Away","Wk 13",5
+"187","Philadelphia","Green Bay","Loss",16,30,"Home","Wk 13",-14
+"188","New England","Los Angeles Chargers","Win",45,0,"Away","Wk 13",45
+"189","Denver","Kansas City","Loss",16,22,"Home","Wk 13",-6
+"190","Washington","Pittsburgh","Win",23,17,"Away","Wk 13",6
+"191","Buffalo","San Francisco","Win",34,24,"Away","Wk 13",10
+"192","Dallas","Baltimore","Loss",17,34,"Home","Wk 13",-17
+"193","New England","Los Angeles Rams","Loss",3,24,"Home","Wk 14",-21
+"194","Houston","Chicago","Loss",7,36,"Home","Wk 14",-29
+"195","Dallas","Cincinnati","Win",30,7,"Away","Wk 14",23
+"196","Kansas City","Miami","Win",33,27,"Away","Wk 14",6
+"197","Arizona","New York Giants","Win",26,7,"Away","Wk 14",19
+"198","Minnesota","Tampa Bay","Loss",14,26,"Home","Wk 14",-12
+"199","Denver","Carolina","Win",32,27,"Away","Wk 14",5
+"200","Tennessee","Jacksonville","Win",31,10,"Away","Wk 14",21
+"201","Indianapolis","Las Vegas","Win",44,27,"Away","Wk 14",17
+"202","New York Jets","Seattle","Loss",3,40,"Home","Wk 14",-37
+"203","Green Bay","Detroit","Win",31,24,"Away","Wk 14",7
+"204","New Orleans","Philadelphia","Loss",21,24,"Home","Wk 14",-3
+"205","Atlanta","Los Angeles Chargers","Loss",17,20,"Home","Wk 14",-3
+"206","Washington","San Francisco","Win",23,15,"Away","Wk 14",8
+"207","Pittsburgh","Buffalo","Loss",15,26,"Home","Wk 14",-11
+"208","Baltimore","Cleveland","Win",47,42,"Away","Wk 14",5
+"209","Los Angeles Chargers","Las Vegas","Win",30,27,"Away","Wk 15",3
+"210","Buffalo","Denver","Win",48,19,"Away","Wk 15",29
+"211","Carolina","Green Bay","Loss",16,24,"Home","Wk 15",-8
+"212","Tampa Bay","Atlanta","Win",31,27,"Away","Wk 15",4
+"213","San Francisco","Dallas","Loss",33,41,"Home","Wk 15",-8
+"214","Detroit","Tennessee","Loss",25,46,"Home","Wk 15",-21
+"215","Houston","Indianapolis","Loss",20,27,"Home","Wk 15",-7
+"216","New England","Miami","Loss",12,22,"Home","Wk 15",-10
+"217","Chicago","Minnesota","Win",33,27,"Away","Wk 15",6
+"218","Seattle","Washington","Win",20,15,"Away","Wk 15",5
+"219","Jacksonville","Baltimore","Loss",14,40,"Home","Wk 15",-26
+"220","New York Jets","Los Angeles Rams","Win",23,20,"Away","Wk 15",3
+"221","Philadelphia","Arizona","Loss",26,33,"Home","Wk 15",-7
+"222","Kansas City","New Orleans","Win",32,29,"Away","Wk 15",3
+"223","Cleveland","New York Giants","Win",20,6,"Away","Wk 15",14
+"224","Pittsburgh","Cincinnati","Loss",17,27,"Home","Wk 15",-10
