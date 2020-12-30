@@ -5,7 +5,9 @@ library(dplyr)
 
 #### PUT GAMES TOGETHER IN DATAFRAME ####
 
-GetGameScores <- function(first_x_weeks) {
+i <- 1
+
+GetGameScores <- function(first_x_weeks = 17,Year = 2020) {
 
 print("Creating Empty DataFrame")
 AllGames <- data.frame()
@@ -13,7 +15,7 @@ AllGames <- data.frame()
   for (i in 1:first_x_weeks) {
   
 # week1
-myurl <- paste0('https://www.espn.com/nfl/schedule/_/week/',i)
+myurl <- paste0('https://www.espn.com/nfl/schedule/_/week/',i,'/year/',Year)
 
 # Read URL
 htmlfile <- read_html(myurl) #  %>% html_nodes('.main-content') %>% html_attr('class')
@@ -82,6 +84,8 @@ AllGames <- rbind(AllGames,df)
 
 print(AllGames)  
 }
+
+
 
 
 

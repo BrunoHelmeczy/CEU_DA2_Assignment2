@@ -2,9 +2,10 @@ library(rvest)
 library(data.table)
 library(stringr)
 library(dplyr)
+library(tidyverse)
 
-source('Get_Team_Stats_YTD.R')
-source('Get_Game_Outcomes.R')
+source('Codes/Get_Team_Stats_YTD.R')
+source('Codes/Get_Game_Outcomes.R')
 # GetNFLTeamStatsYTD(2020)
 
 
@@ -52,7 +53,7 @@ for (i in 1:(length(GamesScores$Winning_Team))) {
   
 }
 
-GamesScores <- GamesScores %>% select(Team, Opponent, Team_Outcome, Team_Score, Opp_Score, Winner, Week  ) %>% 
+GamesScores <- GamesScores %>% dplyr::select(Team, Opponent, Team_Outcome, Team_Score, Opp_Score, Winner, Week  ) %>% 
   mutate(Difference = Team_Score - Opp_Score)
 
 ## 3) Transform Team Names to for Joins
@@ -190,11 +191,12 @@ YTDTeams <- YTDTeams %>%
                        ,off_pass_INT       = round(off_pass_INT/GP,2)
                        ,off_pass_SACK      = round(off_pass_SACK/GP,2)
                        ,off_pass_RTG
-                       ,off_rush_ATT       = round(def_rush_ATT/GP,2)
-                       ,off_rush_AVG       = round(def_rush_AVG,2)
-                       ,off_rush_YDS_pr_G  = round(def_rush_YDS_pr_G,2)
-                       ,off_rush_TD        = round(def_rush_TD/GP,2)
-                       ,off_rush_FUM       = round(def_rush_LST/GP,2)
+                       ,off_rush_ATT       = round(off_rush_ATT/GP,2)
+                       ,off_rush_AVG       = round(off_rush_AVG,2)
+                       ,off_rush_YDS_pr_G  = round(off_rush_YDS_pr_G,2)
+                       ,off_rush_TD        = round(off_rush_TD/GP,2)
+                       ,off_rush_FUM       = round(off_rush_LST/GP,2)
+                       ,off_Turnovers      = round(off_rush_LST/GP,2) + round(off_pass_INT/GP,2)
                        
                        ,def_pass_CMP       = round(def_pass_CMP/GP ,2)
                        ,def_pass_ATT       = round(def_pass_ATT/GP ,2)
@@ -209,7 +211,8 @@ YTDTeams <- YTDTeams %>%
                        ,def_rush_AVG       = round(def_rush_AVG,2)
                        ,def_rush_YDS_pr_G  = round(def_rush_YDS_pr_G,2)
                        ,def_rush_TD        = round(def_rush_TD/GP,2)
-                       ,def_rush_FUM       = round(def_rush_LST/GP,2))
+                       ,def_rush_FUM       = round(def_rush_LST/GP,2)
+                       ,def_Turnovers      = round(def_rush_LST/GP,2) + round(def_pass_INT/GP,2))
 
 
 #### MERGE GAMES & YTD STATS TABLES ####
@@ -233,16 +236,12 @@ colnames(GameswOpp) <- Headers
 Dataset <- GameswOpp
 rm(GameswTeam,GameswOpp)
 
-View(GamesScores)
-View(YTDTeams)
-View(Dataset)
-
 #### Take difference between teams & opponents ####
   # Decision was made to use proportions 
   #   i.e.: divide Team by Opponent
   #   e.g.: Team attended 20 passes per game, opponent 25 per game
   #         then Off_Pass_Att variable = 20/25 = 0.8
-colnames(Dataset)
+# colnames(Dataset)
 Dataset <- Dataset %>% mutate( 
                     OFF_Pas_Comp    = Team_off_pass_CMP                /Opp_off_pass_CMP
                    ,OFF_pass_ATT      = Team_off_pass_ATT                /Opp_off_pass_ATT
@@ -258,6 +257,7 @@ Dataset <- Dataset %>% mutate(
                    ,OFF_rush_YDS_pr_G = Team_off_rush_YDS_pr_G           /Opp_off_rush_YDS_pr_G
                    ,OFF_rush_TD       = Team_off_rush_TD                 /Opp_off_rush_TD
                    ,OFF_rush_FUM      = Team_off_rush_FUM                /Opp_off_rush_FUM
+                   ,OFF_Turnovers     = Team_off_Turnovers               /Opp_off_Turnovers
                    
                    ,DEF_Pas_Comp      = Team_def_pass_CMP                /Opp_def_pass_CMP
                    ,DEF_pass_ATT      = Team_def_pass_ATT                /Opp_def_pass_ATT
@@ -272,27 +272,29 @@ Dataset <- Dataset %>% mutate(
                    ,DEF_rush_AVG      = Team_def_rush_AVG                /Opp_def_rush_AVG
                    ,DEF_rush_YDS_pr_G = Team_def_rush_YDS_pr_G           /Opp_def_rush_YDS_pr_G
                    ,DEF_rush_TD       = Team_def_rush_TD                 /Opp_def_rush_TD
-                   ,DEF_rush_FUM      = Team_def_rush_FUM                /Opp_def_rush_FUM) %>% 
-  select( Team, Opponent, Team_Outcome, Winner, Team_Score, Opp_Score, Difference, Winner, Week
+                   ,DEF_rush_FUM      = Team_def_rush_FUM                /Opp_def_rush_FUM
+                   ,DEF_Turnovers     = Team_def_Turnovers               /Opp_def_Turnovers) %>% 
+  dplyr::select( Team, Opponent, Team_Outcome, Winner
           ,OFF_Pas_Comp ,OFF_pass_ATT     ,OFF_pass_CMP_prc  
           ,OFF_Pas_AVG  ,OFF_pass_YDS_pr_G 
           ,OFF_pass_TD  ,OFF_pass_INT     ,OFF_pass_SACK     ,OFF_pass_RTG      
-          ,OFF_rush_ATT ,OFF_rush_AVG     ,OFF_rush_YDS_pr_G ,OFF_rush_TD  ,OFF_rush_FUM      
+          ,OFF_rush_ATT ,OFF_rush_AVG     ,OFF_rush_YDS_pr_G ,OFF_rush_TD  ,OFF_rush_FUM, OFF_Turnovers      
           
           ,DEF_Pas_Comp ,DEF_pass_ATT      ,DEF_pass_CMP_prc  
           ,DEF_Pas_AVG  ,DEF_pass_YDS_pr_G 
           ,DEF_pass_TD  ,DEF_pass_INT      ,DEF_pass_SACK ,DEF_pass_RTG      
-          ,DEF_rush_ATT ,DEF_rush_AVG      ,DEF_rush_YDS_pr_G ,DEF_rush_TD ,DEF_rush_FUM)
+          ,DEF_rush_ATT ,DEF_rush_AVG      ,DEF_rush_YDS_pr_G ,DEF_rush_TD ,DEF_rush_FUM, DEF_Turnovers)
+
 
 
 ## Write source files & final Dataset to CSV & RDS objects
-write.csv(Dataset, 'DA2_Ass2_Cleaned_n_Merged.csv')
-saveRDS(Dataset, 'DA2_Ass2_Cleaned_n_Merged.rds')
+write.csv(Dataset, 'Data/Clean/DA2_Ass2_Cleaned_n_Merged.csv')
+saveRDS(Dataset, 'Data/Clean/DA2_Ass2_Cleaned_n_Merged.rds')
 
-write.csv(GamesScores, 'DA2_Ass2_GamesScores.csv')
-saveRDS(GamesScores, 'DA2_Ass2_GamesScores.rds')
+write.csv(GamesScores, 'Data/Raw/DA2_Ass2_GamesScores.csv')
+saveRDS(GamesScores, 'Data/Raw/DA2_Ass2_GamesScores.rds')
 
-write.csv(YTDTeams, 'DA2_Ass2_TeamStatsYTD.csv')
-saveRDS(YTDTeams, 'DA2_Ass2_TeamStatsYTD.rds')
+write.csv(YTDTeams, 'Data/Raw/DA2_Ass2_TeamStatsYTD.csv')
+saveRDS(YTDTeams, 'Data/Raw/DA2_Ass2_TeamStatsYTD.rds')
 
 
