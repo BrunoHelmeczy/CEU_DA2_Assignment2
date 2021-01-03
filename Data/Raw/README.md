@@ -1,6 +1,6 @@
 # CEU_DA2_Assignment2
 
-This repository folder contains the semi-raw NFL Game Outcomes & year-to-date NFL Team statistics data, scraped from the Entertainment & Sports Programming Networks' website (ESPN).
+This repository folder contains the semi-raw 2020 NFL Game Outcomes & year-to-date NFL Team statistics data, scraped from the Entertainment & Sports Programming Networks' website (ESPN). 
 
 The data collection process was executed using the **Get_Game_Outcomes.R** & **Get_Team_Stats_YTD.R** R function scripts, available under this repositorys' Codes sub-folder. 
 
