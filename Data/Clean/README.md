@@ -6,7 +6,7 @@ The data cleaning process was executed with the **Clean_n_Merge_YTD_n_GamesStats
 
 **NFL Games Data:**
 
- - Derive Home & Away Teams from ESPN's format & rename these to Away & Home teams' respectively.
+ - Derive Home & Away Teams from ESPN's format & rename these to Opponent & Team respectively.
  - Convert Winner-Loser scores to Home & Away teams' scores.
  - Keep only Team, Opponent, their scores, Winners' location & calculate margin of victory/loss
  - Renomve franchise names Team/Opponent names except where more teams are present in a city (LA Rams, LA Chargers, NY Jets, NY Giants)
