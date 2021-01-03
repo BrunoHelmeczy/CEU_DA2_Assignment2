@@ -1,0 +1,1066 @@
+---
+title: "Predicting NFL Game outcomes using Probability models"
+author: "Bruno Helmeczy"
+date: "01/01/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if(!require(tidyverse))    install.packages("tidyverse"   , repos = "http://cran.us.r-project.org")
+if(!require(scales))       install.packages("scales"      , repos = "http://cran.us.r-project.org")
+if(!require(lspline))      install.packages("lspline"     , repos = "http://cran.us.r-project.org")
+if(!require(estimatr))     install.packages("estimatr"    , repos = "http://cran.us.r-project.org")
+if(!require(ggthemes))     install.packages("ggthemes"    , repos = "http://cran.us.r-project.org")
+if(!require(moments))      install.packages("moments"     , repos = "http://cran.us.r-project.org")
+if(!require(knitr))        install.packages("knitr"       , repos = "http://cran.us.r-project.org")
+if(!require(gridExtra))    install.packages("gridExtra"   , repos = "http://cran.us.r-project.org")
+
+if(!require(mfx))          install.packages("mfx"         , repos = "http://cran.us.r-project.org")
+if(!require(margins))      install.packages("margins"     , repos = "http://cran.us.r-project.org")
+if(!require(pscl))         install.packages("pscl"        , repos = "http://cran.us.r-project.org")
+if(!require(modelsummary)) install.packages("modelsummary", repos = "http://cran.us.r-project.org")
+
+if(!require(jtools))       install.packages("jtools"      , repos = "http://cran.us.r-project.org")
+if(!require(huxtable))     install.packages("huxtable"    , repos = "http://cran.us.r-project.org")
+if(!require(ggcorrplot))   install.packages("ggcorrplot"  , repos = "http://cran.us.r-project.org")
+if(!require(gmodels))      install.packages("gmodels"     , repos = "http://cran.us.r-project.org")
+if(!require(data.table))   install.packages("data.table"  , repos = "http://cran.us.r-project.org")
+
+
+library(tidyverse)
+library(scales)
+library(lspline)
+library(estimatr)
+library(ggthemes)
+library(knitr)
+library(gridExtra)
+library(mfx)            # 4 Logit / Probit Models
+library(margins)        # 4 Logit / Probit Models
+library(pscl)           # 4 Logit / Probit Models
+library(modelsummary)   # 4 Logit / Probit Models
+library(jtools)
+library(huxtable)
+library(ggcorrplot)
+library(gmodels)
+library(data.table)
+
+## Disable scientific Notation
+options(scipen = 999)
+
+### Load Cleaned data - 2020 Season
+dfclean <- read_csv("https://raw.githubusercontent.com/BrunoHelmeczy/CEU_DA2_Assignment2/main/Data/Clean/DA2_Ass2_Cleaned_n_Merged_2020.csv")
+dfclean <- dfclean %>% dplyr::select(-X1)
+
+### Testing Data - 2019 Season
+dftest <- read_csv("https://raw.githubusercontent.com/BrunoHelmeczy/CEU_DA2_Assignment2/main/Data/Clean/DA2_Ass2_Cleaned_n_Merged_2019.csv")
+dftest <- dftest %>% dplyr::select(-X1)
+
+# Team equals Away Team; Opponent  equals Home Team
+# Team_Outcome thus means if away team won -> 1 = Yes ; 0 = No
+dfclean$Team_Outcome <- ifelse(dfclean$Team_Outcome == "Win",1,0)
+dfclean$Winner <- ifelse(dfclean$Winner == "Away", 1,0)
+dfclean[c("Team_Outcome", "Winner")]
+dfclean$Winner <- NULL
+dfclean$Team_Outcome <- as.integer(dfclean$Team_Outcome)
+
+dftest$Team_Outcome <- ifelse(dftest$Team_Outcome == "Win",1,0)
+dftest$Winner <- ifelse(dftest$Winner == "Away", 1,0)
+dftest[c("Team_Outcome", "Winner")]
+dftest$Winner <- NULL
+dftest$Team_Outcome <- as.integer(dftest$Team_Outcome)
+
+### Set default Theme for all plots
+theme_set(new = theme_tufte() + theme(legend.position = c(0.9,0.85)
+                      ,legend.title = element_text(size = 8)
+                      ,legend.text = element_text(size = 7)
+                      ,legend.key.size = unit(4,"mm")
+                      ,plot.title = element_text(face = "italic",size = 10)
+                      ,plot.title.position = "plot"
+                      ,axis.title = element_text(size = 9)
+                      ,axis.text.x = element_text(angle = 90, size = 8)) )
+
+
+```
+
+### Executive Summary 
+This report investigates association patterns between NFL game outcomes & various year-to-date team statistics per game. The analysis serves to conclude games' expected results, from which unexpected results can further be investigated. From the analysis below, readers can learn competing teams' most significant statistics for explaining game outcome, how these key statistics are associated to derive win probabilities, & how well year-to-date team statistics explain what happened in a particular game. 
+
+For accuracy assessment, probabilities were classified into wins & losses with a 0.5 threshold value. The final Probit-model incorporates Offensive & Defensive Passer Rating differential, Offensive Rushing Yards/Play, Sacks suffered & Offensive Turnovers. It can accurately predict 75.8% of game outcomes in sample (the 2020 season thus far) & tested 69.6% accurate on the 2019 season (though only Offensive & Defensive Passer Rating differentials were found robust). Though artificial neural networks have achieved better accuracy ([Kahn, 2003](http://homepages.cae.wisc.edu/~ece539/project/f03/kahn.pdf)), the presented model rivals expert analysts Purucker ([1996](https://ieeexplore.ieee.org/abstract/document/535226)) used as baseline comparison, & greatly outperforms ESPN expert analysts Kahn ([2003](http://homepages.cae.wisc.edu/~ece539/project/f03/kahn.pdf)) used for comparison. It also rivals / beats more recent NFL game prediction efforts, with Warner ([2010](http://www.cs.cornell.edu/courses/cs6780/2010fa/projects/warner_cs6780.pdf)) achieving 64.4% with a Gaussian process model using 10 years' data, Shau ([2011](http://cs229.stanford.edu/proj2011/Shau-PredictingOutcomesOfNFLGames.pdf)) achieving 68.4% with Support Vector Machine (SVM) model using 41 years' data, & Owen & Galle ([2014](https://docplayer.net/56085578-Predicting-the-nfl-zachary-owen-and-virgile-galle.html)) achieving 68.6%, also with SVM & 5 years' data.
+
+**Introduction:** This report investigates how well can NFL games’ outcomes be predicted, based on various year-to-date statistics per game of the teams playing each other. I hesitate to call this analysis predictive, as teams' year-to-date statistics are compiled from the games, whose outcomes are the object of prediction. However, this analysis serves to conclude what was the expected result for a game, from which unexpected results can further be investigated. In essence, from this analysis, readers can learn **a.** competing teams' most significant year-to-date statistics which explain a specific games’ outcome, **b.** how these statistics are associated to win probabilities, & **c.** how well year-to-date team statistics explain what happened in a game. 
+
+**American football** is a game of territorial gain. It is played with distinct offensive- & defensive units of 11 players on the field. Team A’s offense takes on Team B’s defence & vice versa. Offenses’ objective is to march through a field of 100 yards & reach the opponents end zone, resulting in a Touchdown, worth 7 points. The team with more points at the end of the game wins. Offenses must gain at least 10 yards in 4 attempts, & are rewarded with a 1st down, i.e. another 4 attempts to gain 10 yards. How many yards a team needs to march from how many attempts is communicated as e.g. 1st & 10. This means it is the offenses' 1st of 4 attempts (called downs) & they need to gain 10 yards to receive a 1st down. If team A’s offense loses the ball, or cannot gain the yards needed, team B gets the ball from the spot team A got to. Then, team A’s defense plays team B’s offense, & team B tries to reach the opposite end zone for a touchdown. 
+
+**Offense:** To get the yards needed, offenses can either run (i.e. execute a running play), or pass the ball (i.e. execute a passing play). Every play starts with the the ball snapped to the Quarterback, whom can either hand the ball off to a runningback, or pass it to a receiver. 
+
+**Running:**  When the Runningback gets the ball, he runs to gain as many yards as possible, until being tackled to the ground by the defense. The next play starts from where the runningback was tackled.
+
+**Passing:** Quarterbacks can also keep the ball & throw to their receivers. A receiver catching the ball before it hits the ground is a completed pass, & the receiver can run forward just like runningbacks, until tackled. The next play starts from where the receiver was tackled. If the ball touches the ground before being caught, it is an incomplete pass & the next play starts where the previous did. Also, the gameclock stops between plays after an incomplete pass, another factor offenses consider when deciding to pass or run.
+
+**Defense:** Many things can go wrong on either play, precisely defenses’ job to enforce. The quarterback may be tackled before throwing the ball, called a **Sack**. Both he & the runningback can lose the ball before throwing or being tackled, called a **Fumble**. Then, defensive players can also collect the ball, & the opponent gets to play offense, if successful. The quarterbacks’ pass can also be caught by defensive players, an **Interception**, again resulting in the opponent to play offense. Fumbles & Interceptions are together recorded as **Turnovers**. Just as offenses choose if they should pass or run, defenses can focus on either too. 
+
+**Defending the Run or Pass:** A Pass-oriented defense play would assign 3-4 players to sack the quarterback, & 7-8 players to cover receivers. The aim is to enforce an error: The quarterback wants to pass to receivers in good position to catch the ball, but 7-8 players are defending them, so it takes more time for them to find an open position, but he cannot wait long, else the defense will succeed sacking him, resulting in lost yards. This is called “pressuring the quarterback”. Alternatively, defenses can focus on running plays by assigning 7-8 players to tackle the Runningback or Quarterback, leaving 3-4 pass defenders. 
+
+**The Games’ tactical nature:** Deciding if the offense should run or pass on a play broadly depends on: 
+
+1)	How many yards the offense needs to gain in the next how many attempts ? 
+2)  How much time is left from the game & what is the current score ?
+3)	How effective they are at passing or at running the ball ?
+4)	How good is the opponent at defending against passing or running the ball ?
+
+Each play starts with snapping the ball to the quarterback & ends either with the ball-carrier tackled, running out of bounds, an incomplete pass, or a touchdown. When a play ends, the offense has 40 seconds to decide & start their next play (recall, if the play ended with a ball carrier being tackled, the game clock keeps moving in these 40 seconds). In most cases, this is the head coaches' decision. What is more meaningful, is the quarterbacks' role. The coach communicates the play to execute to the quarterback, whom distributes this information, then the team takes their pre-snap position, & the defensive unit takes their positions, reacting to the offense. At this point the quarterback surveys the defense (judging the defensive formation) & he's free to change the play coaches wanted to execute. If so, he calls a pre-snap audible, screaming code words to his team-mates, whom now know their new assignments. This highlights the Quarterbacks’ significance. 
+
+**Quarterbacks:** Every play goes through the quarterback: He touches the ball in every play, & he distributes what play is happening, with the authority to change said play last-second. He is also the player making the most complex decisions during plays & certainly the most influential position to an American Football teams’ success. An audible to execute a run, not a pass, due to recognizing a weakness in the defense is equally important to a teams’ success, as changing to a different passing play. Thus, it is said by expert analysts that a good quarterback also makes his teammates better, most obviously by putting them in better situations to succeed, leading to better measure values in seemingly unrelated statistics. Quarterbacks are so important, that a separate metric quantifies their performance, the Passer Rating.
+
+**Statistical Measures:** Measuring how good teams’ offensive / defensive units are is an elusive concept & a number of statistics are collected to characterize their success in both running & passing. If running & passing are well characterized however, the same statistics can capture to the same extent offensive & defensive performance. In other words, how many yards a teams’ offense gains per running play helps to characterize the teams’ offense as much as how many yards a teams’ defense allows per running play.
+
+**Running Statistics:** To characterize a teams’ running offense, one may be interested in the **a.** average yards gained per running play, **b.** number of running plays executed, **c.** total rushing yards, or **d.** touchdowns. 
+
+**Average yards per play** establishes expected gains of a running play. If e.g. 5, it means a team will get to 2nd & 5 on average, needing 5 yards in 2 more plays. Since they can expect 5 yards on any running play, they are in perfect position to try a long-pass play,  with high upside without much to lose. Also, opponents’ defenses know their success in running & must pay more attention to defending the run, leaving pass defenders 1-on-1 vs receivers, allowing better chances for a long-pass to succeed.
+**Running plays per game** on the other hand can be thought of as the teams’ tactical commitment to running & a proxy for clock management, or teams’ time of possession, since running the ball implies the game clock ticking between plays. Frequently against star quarterbacks, opponents’ best defensive strategy is for their offense to run the ball, thus keeping said quarterback off the field. 
+
+**Passing Statistics:** To characterize a teams’ passing offense, one might be interested in the **a.** average yards gained per passing play, **b.** number of passing plays executed per game, **c.**  number of passes completed per game, **d.** touchdowns per game, or **e.** number of times the ball was intercepted per game. 
+
+**Sacks:** Under how much pressure defenses keep quarterbacks is the primary mechanism by which they force mistakes. The most accurately measurable statistic for this are Sacks. Though what is intended to be captured, is how much defenses can alter quarterbacks’ decision-making, for every Sack a defense accomplishes, they **Hit** the quarterback few times (tackle him just after throwing), & for every hit, they also **Hurry** him. These are consistent ratios, so Sacks can represent the pressure quarterbacks experience.
+
+**Passer Rating:** As aforementioned, a separate metric was invented to capture quarterbacks’ performance, given their significance in winning American football games. This NFL-specific measure is scaled to be between 0 & 158.3 (the higher, the better), & incorporates the 5 metrics mentioned above. 2 major flaws in the passer rating metric is its’ negligence of a. How many Sacks did the passer encounter & b. How many times did he lose the ball via Fumbles. For the specific formula, please see the appendices. 
+$\vspace{0.1cm}$
+
+## My Data
+The data for this analysis comprises the 2020 NFL season & was scraped from ESPNs’ website. **1st** the 2020 NFL regular seasons' game outcomes before January 1st 2021, & **2nd** the following Year-to-Date Team statistics accumulated over the season were collected (averaged per game unless noted otherwise & collected for offenses & defenses): Passing **a.** Attempts, **b.** Completions, **c.** Completion %, **d.** Yards per Attempt, **e.** Yards, **f.** Touchdowns, **g.** Interceptions, **h.** Sacks, **i.** Passer Rating, & Rushing **j.** Attempts, **k.** Yards per Attempt, **l.** Yards, **m.** Touchdowns, **n.** Fumbles Lost, plus **o.** Turnovers sum Interceptions & Fumbles Lost. For defenses, these are to be interpreted as what opponents’ offenses accomplished against them. This resulted in 30 variables collected per team. Finally, Away teams’ year-to-date statistics have been divided by Home teams’ respectively. Keeping Home- & Away teams (i.e. Opponent & Team), & all game outcomes (the dependent variable) yielded 240 observations & 33 variables. The binary dependent variable takes the value of 1 (Win) if the Away team won, & 0 otherwise.
+
+**Dataset weaknesses:** While all variables were conveniently included in the preceding discussion on American Football, a few additions could be useful for better predictions substantively. Weather conditions in open stadiums can impact play calling significantly: pouring rain causes a muddy field & slippery ball (harder to catch & easier to drop). Injuries are big part of football, & can alter teams’ prospects significantly.
+
+```{r, message = F,warning = F, echo = FALSE,  fig.height= 10, fig.align='center'}
+ColNrs <- c(12,11,27,14,18)
+t <- as.data.frame(cbind(
+  "Mean"      = mapply(mean , dfclean[ColNrs])
+  ,"StDev"    = mapply(sd , dfclean[ColNrs])
+  ,"Skew"     = mapply(skewness , dfclean[ColNrs])
+  ,"Min"      = mapply(min , dfclean[ColNrs])
+  ,"1st IQR"  = mapply(quantile, probs = 0.25 , dfclean[ColNrs])
+  ,"Median"   = mapply(median , dfclean[ColNrs])
+  ,"3rd IQR"  = mapply(quantile, probs = 0.75 , dfclean[ColNrs])
+  ,"Max"      = mapply(max , dfclean[ColNrs])))
+
+t$Mean      <- round(as.numeric(t$Mean),2)
+t$StDev     <- round(as.numeric(t$StDev),2)
+t$Skew      <- round(as.numeric(t$Skew),2)
+t$Min       <- round(as.numeric(t$Min),2)
+t$`1st IQR` <- round(as.numeric(t$`1st IQR`),2)
+t$Median    <- round(as.numeric(t$Median),2)
+t$`3rd IQR` <- round(as.numeric(t$`3rd IQR`),2)
+t$Max       <- round(as.numeric(t$Max),2)
+
+t %>% kable()
+```
+
+
+```{r, message = F,warning = F, echo = FALSE,  fig.height= 10, fig.align='center'}
+### Variable Histograms Function:
+RawLogVarHists <- function(x_var, VarName = "") {
+  raw <- data.frame("Values" = x_var, "Tranformation" = "Raw")
+  logged <- data.frame("Values" = log(x_var),"Tranformation" ="Log Scale")
+  df <- rbind(raw, logged)
+  lowbnd <- min(round(df$Values[which(is.finite(df$Values))],1))
+  Uppbnd <- max(round(df$Values[which(is.finite(df$Values))],1))
+  
+  df %>% ggplot(aes(x = Values, fill = Tranformation )) +
+    geom_histogram(alpha = 0.85, position = 'identity', bins = 50) +
+    scale_fill_brewer(palette = "Set1") +
+    labs(title = paste0("Raw vs Logged Histogram: ",VarName),
+         y = 'Frequency Count', x = paste0(VarName," - Team vs Opponent Ratios")) +
+    scale_x_continuous(expand = c(0.01,0.01), limits = c(lowbnd,Uppbnd)
+                       , breaks = seq(round(lowbnd,1),round(Uppbnd,1)
+                                      ,round((round(Uppbnd,1)-round(lowbnd,1))/20,2))
+                       ,labels = comma)   
+}
+
+### Store Variable Histograms for Appendices
+
+# 1 Passes Completed - OK - slight skewness - almost completely symmetric with log
+ho1 <- RawLogVarHists(dfclean$OFF_Pas_Comp, "Offense Passes Completed")
+# 1 Passes Completed - OK - slight skewness - almost completely symmetric with log
+hd1 <- RawLogVarHists(dfclean$DEF_Pas_Comp, "Passes Completed Against")
+
+# 2 Passes Attended - Same as #1
+ho2 <- RawLogVarHists(dfclean$OFF_pass_ATT, "Offense Passes Attempted")
+# 2 Passes Attended - Same as #1
+hd2 <- RawLogVarHists(dfclean$DEF_pass_ATT, "Pass Attempts Against")
+
+# 3 Pass Completion % ( #2 / #1 ) - Same as #1
+ho3 <- RawLogVarHists(dfclean$OFF_pass_CMP_prc, "Offense Pass Completion %")
+# 3 Pass Completion % ( #2 / #1 ) - Same as #1
+hd3 <- RawLogVarHists(dfclean$DEF_pass_CMP_prc, "Pass Completion % Against")
+
+# 4 Yards per passing play - Same as #1
+ho4 <- RawLogVarHists(dfclean$OFF_Pas_AVG, "Avg. Pass Yards/Pass")
+# 4 Yards per passing play - Same as #1
+hd4 <- RawLogVarHists(dfclean$DEF_Pas_AVG, "Pass Yards/Play vs")
+
+# 5 Passing Yards per game - visibly skewed  
+ho5 <- RawLogVarHists(dfclean$OFF_pass_YDS_pr_G, "Offense Pass Yards")
+# 5 Passing Yards per game - visibly skewed  
+hd5 <- RawLogVarHists(dfclean$DEF_pass_YDS_pr_G, "Pass Yards Against")
+
+# 6 Passing Touchdowns per game - visibly skewed - definitely log
+ho6 <- RawLogVarHists(dfclean$OFF_pass_TD, "Passing TDs")
+# 6 Passing Touchdowns per game - visibly skewed - definitely log
+hd6 <- RawLogVarHists(dfclean$DEF_pass_TD, "TDs Passed Against")
+
+# 7 Interceptions - same as #6  
+ho7 <- RawLogVarHists(dfclean$OFF_pass_INT , "Interceptions Thrown")
+# 7 Interceptions - same as #6  
+hd7 <- RawLogVarHists(dfclean$DEF_pass_INT, "Defenses' Interceptions")
+
+# 8 QB Rating - slightly skewed  - log seems to cause skewness to right
+ho8 <- RawLogVarHists(dfclean$OFF_pass_RTG, "Offense Passer Rating")
+# 8 QB Rating - slightly skewed  - log seems to cause skewness to right
+hd8 <- RawLogVarHists(dfclean$DEF_pass_RTG, "Passer Rating Against")
+
+# 9 QB Sacks - very skewed - log is must
+ho9 <- RawLogVarHists(dfclean$OFF_pass_SACK, "Sacks Encountered")
+# 9 QB Sacks - very skewed - log is must
+hd9 <- RawLogVarHists(dfclean$DEF_pass_SACK, "Sacks Accomplished")
+
+# 10 Rushing Attempts - slight skewed  
+ho10 <- RawLogVarHists(dfclean$OFF_rush_ATT, "Rushing Attempts")
+# 10 Rushing Attempts - slight skewed  
+hd10 <- RawLogVarHists(dfclean$DEF_rush_ATT, "Rushing Plays Against")
+
+# 11 Yards per Rushing Attempt - visibly skewed log helps
+ho11 <- RawLogVarHists(dfclean$OFF_rush_AVG, "Rush Yards/Play")
+# 11 Yards per Rushing Attempt - visibly skewed log helps
+hd11 <- RawLogVarHists(dfclean$DEF_rush_AVG, "Rush Yards/Play Against")
+
+# 12 Rushing Yards per game - visibly skewed - must log  
+ho12 <- RawLogVarHists(dfclean$OFF_rush_YDS_pr_G , "Rushing Yards")
+# 12 Rushing Yards per game - visibly skewed - must log  
+hd12 <- RawLogVarHists(dfclean$DEF_rush_YDS_pr_G, "Rushing Yards Against")
+
+# 13 Rushing Touchdowns - visibly skewed - must log  
+ho13 <- RawLogVarHists(dfclean$OFF_rush_TD, "Rushing Touchdowns")
+# 13 Rushing Touchdowns - visibly skewed - must log  
+hd13 <- RawLogVarHists(dfclean$DEF_rush_TD, "Rushing TDs Against")
+
+# 14 Fumbles - sparse data with 14 zeros - cant take logs but no distribution shape  
+ho14 <- RawLogVarHists(dfclean$OFF_rush_FUM, "Rush Fumbles Lost")
+# 14 Fumbles - sparse data with 7 zeros - cant take logs but no distribution shape  
+hd14 <- RawLogVarHists(dfclean$DEF_rush_FUM, "Defense Rush Fumbles Taken")
+
+# 15 Offensive Turnovers = Balls lost - visibly skewed - must log
+ho15 <- RawLogVarHists(dfclean$OFF_Turnovers, "All Offensive Turnovers")
+# 15 Turnovers = Balls taken - visibly skewed - must log
+hd15 <- RawLogVarHists(dfclean$DEF_Turnovers, "All Defensive Turnovers")
+
+
+
+
+
+
+
+
+
+
+
+```
+
+**Summary Stats & Histograms:** Taking ratios of YTD variables leads to the general interpretation of how much better the Away teams' statistic was vs the Home team. While this seems intuitive substantively (How much better a team played over the other is a frequent explanation for why they have won among analysts), though might right-skews variables. The visual checks (available in the appendices) confirm this.
+
+**Correlations** were used as starting points, in hopes of **a.** finding strongest correlating variables with Wins & **b.** finding variables that strongly correlate with other possible features, enabling to simplify our model, yet  cover most available information. Please see the appendices for a Correlogram of all 465 variable pairs. The key highlight from the plots below is the importance of the relative performance in Quarterbacks’ Passer Ratings, both how much better a teams’ QB plays vs the opponents (OFF_pass_RTG), & how much better do teams defend opponents’ QBs vs opposing teams (DEF_pass_RTG). Also, note on the right-side how strongly other variables correlate with Offensive / Defensive Passer Ratings. Passer Rating incorporates Passes, Completions, Yards, Touchdowns & Interceptions, while Completion% & Pass Average are derived from these measures, thus Passer Ratings cover 7 of 8 Passing-related variables, Sacks being the 1 passing statistic not incorporated. Thus, a sensible 1st model would use Offensive & Defensive Passer Rating as explanatory variables. 
+Additionally, Sacks show the 2nd strongest correlation with Wins, though offensive Sacks correlate with Defensive Passer Ratings, while 3 Rushing-related stats correlating with Win probability are Rushing Attempts, Touchdowns & Yards. Rushing attempts may possibly act as proxy for time of possession (recall the game clock continues after all running plays), while Yards & Touchdowns are Rushes' success measures. Note, Rushing Yards/Play combines Yards & Attempts, thus combines the seemingly most important Rushing-related variables. 
+
+
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 2}
+### Plot Top Correlations w Wins + Off / Def QBRs
+numeric_df <- keep( dfclean , is.numeric )
+cT <- round(cor(numeric_df , use = "complete.obs"),3)
+
+WinCors <- data.frame(abs(cT))[c("Team_Outcome")] %>%  filter(Team_Outcome != 1 ) %>% arrange(desc(Team_Outcome))
+OffRTGCors <- data.frame(abs(cT))[c("OFF_pass_RTG")] %>% filter(OFF_pass_RTG != 1 ) %>% arrange(desc(OFF_pass_RTG))
+DefRTGCors <-  data.frame(abs(cT))[c("DEF_pass_RTG")] %>% filter(DEF_pass_RTG != 1) %>% arrange(desc(DEF_pass_RTG))
+
+# Correlogram for Appendices
+Corrplot1 <- ggcorrplot(cT,method = "square", type = "lower"
+           , colors = c("red","white","red")
+           ,lab = T, tl.cex = 6, lab_size = 1.5) +
+  labs(title = "NFL Team vs Opponent Stats Correlogramm")
+
+# DataFrames for Plots
+QBRDef <- data.frame("CorrVars" = rownames(head(DefRTGCors,7)), "CorrValues" = round(head(DefRTGCors,7),2)
+           , "QBR" = "Defense")
+QBROff <- data.frame("CorrVars" = rownames(head(OffRTGCors,5)), "CorrValues" = round(head(OffRTGCors,5),2)
+           , "QBR" = "Offense")
+QBRWin <- data.frame("CorrVars" = rownames(head(WinCors,12)), "CorrValues" = round(head(WinCors,12),2)
+           , "QBR" = "Win")
+rownames(QBROff) <- NULL
+rownames(QBRDef) <- NULL
+rownames(QBRWin) <- NULL
+colnames(QBROff)[2] <- "CorrValues"
+colnames(QBRDef)[2] <- "CorrValues"
+colnames(QBRWin)[2] <- "CorrValues"
+
+df1 <- data.frame(rbind(QBROff, QBRDef),"Index" = 1:length(rbind(QBROff, QBRDef)[,1]))
+df2 <- data.frame(QBRWin,"Index" = 1:length(QBRWin[,1]))
+
+
+QBRs <- df1 %>% ggplot(aes(reorder(CorrVars,CorrValues)
+                  ,CorrValues, color = QBR, fill = QBR)) + 
+  geom_point(size = 5) + geom_col(width = 0.1, position = "dodge") +
+  geom_text(aes(label = CorrValues), size = 2, color = "black") +
+  coord_flip() +
+  theme(legend.position = c(0.8,0.35)
+        ,legend.title = element_text(size = 8)
+        ,legend.text = element_text(size = 8)
+        ,legend.key.size = unit(2,"mm")
+#        ,legend. = element_rect(size = 1)
+        ,plot.title = element_text(face = "italic",size = 10)
+        ,plot.title.position = "plot"
+        ,axis.title = element_text(size = 9)
+        ,axis.text.x = element_text(angle = 30, size = 7)
+        ,axis.text.y = element_text(size = 6)) + 
+  scale_y_continuous(expand = c(0.01,0.01),limits = c(0,1.2)) + 
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Top Correlations with Team & Opponent Passer Ratings"
+       ,y = "Correlation Coefficients"
+       ,x = "Top Correlated Var.s")
+
+Wins <- df2 %>% ggplot(aes(reorder(CorrVars,CorrValues)
+                   ,CorrValues, color = "navyblue", fill = "navyblue")) + 
+  geom_point(size = 5) + geom_col(width = 0.1, position = "dodge") +
+  geom_text(aes(label = CorrValues), size = 2, color = "black") +
+  coord_flip() +
+  theme(legend.position = c(8,35)
+        ,legend.title = element_text(size = 8)
+        ,legend.text = element_text(size = 8)
+        ,legend.key.size = unit(2,"mm")
+        #        ,legend. = element_rect(size = 1)
+        ,plot.title = element_text(face = "italic",size = 10)
+        ,plot.title.position = "panel"
+        ,axis.title = element_text(size = 9)
+        ,axis.text.x = element_text(angle = 30, size = 7)
+        ,axis.text.y = element_text(size = 6)) + 
+  scale_y_continuous(expand = c(0.01,0.01),limits = c(0,0.6)) + 
+  scale_fill_brewer(palette = "Set2") +
+  scale_color_brewer(palette = "Set2") +
+  labs(title = "Top Correlations w Wins"
+       ,y = "Correlation Coefficients"
+       ,x = "Top Correlated Var.s")
+
+grid.arrange(Wins,QBRs, ncol = 2)
+
+```
+
+**Association Patterns:** Please see below the association patterns between these variables & win probability, together with the best-approximating functional forms. As visible from the plots, Conditional Win Probabilities given relative Passer Rating performance stats can be best approximated with a log-functional form, relative Sack stats with a piecewise linear spline, & average rushing yards/attempt with cubic polynomial functional forms. For all association pattern visualizations, please visit the appendices.
+
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 3}
+#### 4) Functional form checks ####
+CondWinProbability <- function(x_var, plottitle = "") {
+  lowbnd <- min(round(x_var[which(is.finite(x_var))],1))
+  Uppbnd <- max(round(x_var[which(is.finite(x_var))],1))
+
+  dfclean %>% ggplot( aes(x=x_var, y=Team_Outcome)) +
+    geom_point(color="red", shape = 3, alpha=0.8, show.legend=F, na.rm=TRUE)  +
+    geom_smooth(method="loess", color="blue", size = 1) + 
+    scale_x_continuous(expand = c(0.01,0.01), limits = c(lowbnd,Uppbnd)
+                       , breaks = seq(round(lowbnd,2),round(Uppbnd,2)
+                                      ,round((round(Uppbnd,2)-round(lowbnd,2))/20,2)),
+                       labels = comma)+
+    scale_y_continuous(expand = c(0.01,0.01), limits = c(0,1)
+                       , breaks = seq(0,1,0.1)) +
+    theme(axis.text.x = element_text(angle = 45, size = 7),
+          axis.text.y = element_text( size = 7),
+          plot.title.position = "panel") +
+    labs(title = paste0("P(Win) Given ", plottitle)
+           ,x = paste0(plottitle," - Team vs Opponent Ratios"),y = "Team Win Prob.")  
+}
+
+## QB Ratings 
+fo1 <- CondWinProbability(dfclean$OFF_pass_RTG, "Passer Rating") +
+  geom_smooth(formula = y ~ log(x), method = lm , se = F, color='red' , size = 0.65 )+
+  annotate("text", x = 1.4, y = 0.2, label = "Log Functional\nApprox."
+           , size = 2, color = "red") +
+  annotate("text", x = 1.4, y = 0.4, label = "LOESS Curve"
+           , size = 2, color = "navyblue")
+
+fd1 <- CondWinProbability(dfclean$DEF_pass_RTG,"Opposing Passers' Rating") +
+  geom_smooth(formula = y ~ log(x),method=lm, se = F,color = 'red' , size = 0.65) +
+  annotate("text", x = 1.4, y = 0.6, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.35, label = "Log Functional\nApprox."
+           , size = 2, color = "red")
+
+
+# Passes Attempted -> Seems Mean-independent - LEAVE
+fo2 <- CondWinProbability(dfclean$OFF_pass_ATT,"Offensive Pass Attempts") + 
+  geom_smooth(formula = y ~ x, method = lm , se = F, color='red' , size = 0.65 ) +
+  annotate("text", x = 1, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1, y = 0.15, label = "Linear Functional\nApprox."
+           , size = 2, color = "red")
+  
+
+# Passes Attempted -> in QBR
+fd2 <- CondWinProbability(dfclean$DEF_pass_ATT,"Passes Attempted Against") + # Lin+ <1.05
+  geom_smooth( formula = y ~ lspline(x,1) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 0.8, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 0.8, y = 0.65, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passes Completion % -> Cubic form - Already in RTG
+fo3 <- CondWinProbability(dfclean$OFF_pass_CMP_prc,"Pass Completion %") + 
+  geom_smooth(formula = y ~ poly(x,2),method=lm, se = F,color = 'red' , size = 0.65) +
+  annotate("text", x = 0.9, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 0.9, y = 0.65, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passes Completion % -> Cubic form -> in QBR
+fd3 <- CondWinProbability(dfclean$DEF_pass_CMP_prc,"Pass Completion % Against") +
+  geom_smooth( formula = y ~ x , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 0.85, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 0.85, y = 0.15, label = "Linear Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing yards per game -> Cubic Form - Try
+fo4 <- CondWinProbability(dfclean$OFF_pass_YDS_pr_G,"Passing Yards/Game") +
+  geom_smooth( formula = y ~ poly(x,3) , method = lm,se = F, color = 'red', size = 0.65 ) +
+  annotate("text", x = 1.6, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.6, y = 0.15, label = "Cubic Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing yards per game -> Cubic Form -> in QBR
+fd4 <- CondWinProbability(dfclean$DEF_pass_YDS_pr_G, "Passing Yards/Game Against") +
+  geom_smooth( formula = y ~ poly(x,3) , method = lm ,se = F, color = 'red' , size = 0.65)  +
+  annotate("text", x = 1.3, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.3, y = 0.65, label = "Cubic Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing Touchdowns per game -> High Correl w RTG
+fo5 <- CondWinProbability(dfclean$OFF_pass_TD, "PLS of Passing TDs") + # Cubic
+  geom_smooth( formula = y ~ lspline(x,c(1.33))
+               , method = lm, se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 1.8, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.8, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Passing Touchdowns per game -> -> in QBR
+fd5 <- CondWinProbability(dfclean$DEF_pass_TD,"PLS of TD Passes Against") + # Lin- <1.1 & Mean-Indy
+  geom_smooth( formula = y ~ lspline(x,1.25) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 1.4, y = 0.85, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.7, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing Interceptions per game -> High Correl w RTG 
+fo6 <- CondWinProbability(dfclean$OFF_pass_INT, "Interceptions Thrown") +
+  geom_smooth( formula = y ~ poly(x,2)
+               , method = lm, se = F, color = 'red', size = 0.65 ) +
+  annotate("text", x = 3, y = 0.5, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 3, y = 0.35, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red")
+# Passing Interceptions per game -> -> in QBR
+fd6 <- CondWinProbability(dfclean$DEF_pass_INT,"Interceptions Caught") + # Quadratic
+  geom_smooth( formula = y ~ poly(x,2) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 4, y = 0.75, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 4, y = 0.6, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red")
+
+# Sacks per game -> 
+fo7 <- CondWinProbability(dfclean$OFF_pass_SACK, "Nr. of Being Sacked") +
+  geom_smooth( formula = y ~ lspline(x,2) 
+               , method = lm ,se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 3.4, y = 0.85, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 3.4, y = 0.65, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Sacks per game -> 
+fd7 <- CondWinProbability(dfclean$DEF_pass_SACK,"Nr. of Sacks Enforced") + # PLS break @ 1.6
+  geom_smooth( formula = y ~ lspline(x,1.6) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 2, y = 0.5, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 2, y = 0.3, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing yards per attempt -> in RTG
+fo8 <- CondWinProbability(dfclean$OFF_Pas_AVG,"Pass Yards/Play") +
+  geom_smooth( formula = y ~ x 
+               , method = lm ,se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 1.25, y = 0.4, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.25, y = 0.25, label = "Linear Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passing yards per attempt -> CUBIC
+fd8 <- CondWinProbability(dfclean$DEF_Pas_AVG,"Pass Yards/Play Against") +
+  geom_smooth( formula = y ~ x , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 1.15, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.15, y = 0.65, label = "Linear Functional\nApprox."
+           , size = 2, color = "red")
+
+# Passes Completed per game -> 
+fo9 <- CondWinProbability(dfclean$OFF_Pas_Comp,"Completed Passes") + # PLS: 0.9 / 1.1 / 1.35
+  geom_smooth( formula = y ~ lspline(x,0.9) 
+               , method = lm ,se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 1, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Passes Completed per game -> PLS
+fd9 <- CondWinProbability(dfclean$DEF_Pas_Comp,"Pass Completions Against") + # PLS: 0.9 / 1.1 / 1.35
+  geom_smooth( formula = y ~ lspline(x,1.1) , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+
+# Rushing Attempts per game -> PLS
+fo10 <- CondWinProbability(dfclean$OFF_rush_ATT,"Rushing Attempts") +
+  geom_smooth( formula = y ~ lspline(x,c(0.95,1.05)) 
+               , method = lm ,se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 1.15, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.15, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Rushing Attempts per game 
+fd10 <- CondWinProbability(dfclean$DEF_rush_ATT,"Rushes Attempts Against") +  
+  geom_smooth( formula = y ~ x , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1.25, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.25, y = 0.65, label = "Linear Functional\nApprox."
+           , size = 2, color = "red") 
+
+# Rushing yards per attempt -> Cubic but mean-indy
+fo11 <- CondWinProbability(dfclean$OFF_rush_AVG,"Yards/Rushing Attempt") +
+  geom_smooth( formula = y ~ poly(x,3) 
+               , method = lm ,se = F, color = 'red', size = 0.65 )+
+  annotate("text", x = 1.4, y = 0.9, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.7, label = "Cubic Functional\nApprox."
+           , size = 2, color = "red")
+# Rushing yards per attempt -> Cubic
+fd11 <- CondWinProbability(dfclean$DEF_rush_AVG,"Yards/Rushing Against") +
+  geom_smooth( formula = y ~ poly(x,3) , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1.25, y = 0.85, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.25, y = 0.65, label = "Cubic Functional\nApprox."
+           , size = 2, color = "red") 
+
+# Rushing yards per game -> Cubic but mean-indy
+fo12 <- CondWinProbability(dfclean$OFF_rush_YDS_pr_G, "Rushing Yards/Game") + # Quadratic
+  geom_smooth( formula = y ~ poly(x,2) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 1.8, y = 0.4, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.8, y = 0.25, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red")
+# Rushing yards per game -> Cubic but mean-indy
+fd12 <- CondWinProbability(dfclean$DEF_rush_YDS_pr_G, "Rush Yards Against") + # Quadratic
+  geom_smooth( formula = y ~ x , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1.5, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.5, y = 0.65, label = "Linear Functional\nApprox."
+           , size = 2, color = "red") 
+
+# Rushing touchdowns per game -> Cubic
+fo13 <- CondWinProbability(dfclean$OFF_rush_TD,"Rushing TDs") + # Linear
+  geom_smooth( formula = y ~ x , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 2.2, y = 0.4, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 2.2, y = 0.25, label = "Linear Functional\nApprox."
+           , size = 2, color = "red")
+# Rushing touchdowns per game -> Cubic
+fd13 <- CondWinProbability(dfclean$DEF_rush_TD,"Rush TDs Against") +
+  geom_smooth( formula = y ~ poly(x,2) , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1.4, y = 0.8, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.65, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red") 
+
+# Rushing Fumbles 
+fo14 <- CondWinProbability(dfclean$OFF_rush_FUM,"Fumbles Lost") + # Linear
+  geom_smooth( formula = y ~ lspline(x,c(0.7,1.3)) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 1.4, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Rushing Fumbles per game -> Mean Indy
+fd14 <- CondWinProbability(dfclean$DEF_rush_FUM,"Fumbles Enforced") +
+  geom_smooth( formula = y ~ lspline(x,0.6) , method = lm ,se = F, color = 'red' , size = 0.65)+
+  annotate("text", x = 1.4, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red") 
+
+# Offensive Turnovers -> PLS: 
+fo15 <- CondWinProbability(dfclean$OFF_Turnovers,"Turnovers Lost") + 
+  geom_smooth( formula = y ~ lspline(x,c(0.8,3)) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 1.4, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 1.4, y = 0.15, label = "PLS Functional\nApprox."
+           , size = 2, color = "red")
+# Defensive Turnovers -> PLS: 
+fd15 <- CondWinProbability(dfclean$DEF_Turnovers,"Turnovers Taken") + 
+  geom_smooth( formula = y ~ poly(x,2) , method = lm ,se = F, color = 'red' , size = 0.65) +
+  annotate("text", x = 5, y = 0.3, label = "LOESS Curve"
+           , size = 2, color = "navyblue") +
+  annotate("text", x = 5, y = 0.15, label = "Quadratic Functional\nApprox."
+           , size = 2, color = "red")
+
+fd01  <- fd1  + theme(axis.title.y = element_blank(),axis.text.y  = element_blank())
+fd07  <- fd7  + theme(axis.title.y = element_blank(),axis.text.y  = element_blank())
+fd011 <- fd11 + theme(axis.title.y = element_blank(),axis.text.y  = element_blank())
+
+grid.arrange(fo1,fd01,fo7,fd07, ncol = 2)
+
+```
+
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 1.5}
+grid.arrange(fo11,fd011, ncol = 2)
+```
+
+
+## Modeling
+Aiming to predict NFL game outcomes, it was concluded from correlations that a base model considering Offensive & Defensive Passer Ratings seems both statistically & substantively realistic. The base linear probability model specification reflects both variables' log-functional best approximation. Meanwhile the full model also incorporates **a.** Offensive Sacks together with a dummy indicator,  **b.** logged Offensive Rushing Yards/play & piecewise linear spline specifications for **c.** Offensive Turnovers & **d.** Defensive Sacks. 
+
+**Base vs Full LPMs:** Please see these fitted-models' formulaic specifications above. Observing the fitted parameters, one can observe in the Base Model that the intercept is 0.5, implying **a.** if both teams' quarterbacks achieve the same Passer Rating on average throughout the season & **b.** if both teams' opponents' quarterbacks achieve the same passer rating on average against these teams' defenses, than that game is a 50-50 toss-up. Interestingly, Teams whose quarterbacks achieve 1% higher Passer Rating than their opponents can expect to win with 0.83% higher probability, while Teams' defenses against whom quarterbacks achieve 1% higher Passer Rating than their opponents can expect to win with 1.38% lower probability. This suggests it is more important for the team to defend opposing QBs better then the other team, then it is for their QB to outplay the opponents QB, and gives a statistical argument to the football-coach conventional wisdom: "Offense wins Games, Defense wins championships" (though the 2 coefficients are not statistically significantly different).  For the coefficients table, please refer to the appendices.
+
+```{r, message = F,warning = F, echo = FALSE,results = "asis"}
+#### Base vs Full LPM ####
+#### 2) log(Offense QB) & log(Defense QB) ####
+
+lpmclean2 <- lm(Team_Outcome ~ log(OFF_pass_RTG) + 
+                  log(DEF_pass_RTG) 
+                 , data = dfclean)
+
+dfclean$pred2 <- predict(lpmclean2)
+
+#### 8) #7 +  PLS Def_pass_Sack ####
+dfclean$OFF_pass_SACK_dummy <- ifelse(log(dfclean$OFF_pass_SACK) >= -0.2 & 
+                                             log(dfclean$OFF_pass_SACK) <= 1,1,0)
+
+lpmclean8 <- lm(Team_Outcome ~ log(OFF_pass_RTG) + log(DEF_pass_RTG) + 
+                  OFF_pass_SACK_dummy*log(OFF_pass_SACK) +
+                  log(OFF_rush_AVG) + 
+                  lspline(dfclean$OFF_Turnovers,c(0.8,3)) +
+                  lspline(DEF_pass_SACK,1.6)
+                , data = dfclean)
+# Adj.R2 = .2753
+# Pred = 77.08
+
+dfclean$pred8 <- predict(lpmclean8)
+#### Summ Models ####
+base <- round(summary(lpmclean2)[['coefficients']],4)
+full <- round(summary(lpmclean8)[['coefficients']],4)
+
+rownames(base) <- c("Constant","ln(OffQBRating)","ln(DefQBRating)")
+rownames(full) <- c("Constant","ln(OffQBRating)","ln(DefQBRating)"
+  ,"OffSackDummy","ln(OffSacks)","ln(OffRushRardsAVG)"
+  ,"PLS(OffTurnovers)-<0.8","PLS(OffTurnovers)-0.8< x <3","PLS(OffTurnovers)>3"
+  ,"PLS(DefSacks)<1.6","PLS(DefSacks)>1.6","OffSackDummy * ln(OffSacks)")
+
+full <- full[c(1:3,6:12),]
+
+ModelSumm <- rbind(as.data.frame(cbind(base,"Model" = rep("Base",length(base[,1])))),
+                   as.data.frame(cbind(full,"Model" = rep("Full",length(full[,1])))))
+
+stats <- transpose(glance(lpmclean2))
+names(stats) <- "LPM Base"
+StatNames <- names(glance(lpmclean2))
+BaseStats <- cbind("Stats" = StatNames, round(stats,2))
+stats <- transpose(glance(lpmclean8))
+names(stats) <- "LPM Full"
+StatNames <- names(glance(lpmclean8))
+FullStats <- cbind("Stats" = StatNames, round(stats,2))
+BaseFullLPM <- BaseStats %>% left_join(FullStats, by = "Stats")
+BaseFullLPM <- BaseFullLPM[c(2:4),]
+
+LPMAcc <- as.data.frame(lapply(c("pred2","pred8"),function(x) {
+  tl <- list()
+  tl[[x]] <- round(sum(round(dfclean[x],0) == dfclean$Team_Outcome)/length(dfclean$Team_Outcome),3)*100
+  return(tl)
+}))
+LPMAcc$Stats <- "Prediction Acc%"
+LPMBriers <- as.data.frame(lapply(c("pred2","pred8"),function(x) {
+  tl <- list()
+  tl[[x]] <- round(sum(  (dfclean[c(x)]-dfclean[c("Team_Outcome")])^2)/count(dfclean[c("Team_Outcome")]),3)
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+LPMBriers$Stats <- "Brier-Score"
+LPMBias <- as.data.frame(lapply(c("pred2","pred8"), function(x) {
+  tl <- list()
+  Pred <- sum(dfclean[c(x)]) / count(dfclean[c(x)])
+  Act <- sum(dfclean[c("Team_Outcome")]) / count(dfclean[c("Team_Outcome")])
+  
+  tl[[x]] <- round(Pred - Act,3)
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+LPMBias$Stats <- "Bias"
+
+BaseFullLPMTbl <- rbind(BaseFullLPM
+                        ,LPMBriers %>% dplyr::select(Stats,pred2,pred8) %>% 
+                          rename("LPM Base" = pred2, "LPM Full" = pred8)
+                        ,LPMBias %>% dplyr::select(Stats,pred2,pred8) %>% 
+                          rename("LPM Base" = pred2, "LPM Full" = pred8)
+                        ,LPMAcc %>% dplyr::select(Stats,pred2,pred8) %>% 
+                          rename("LPM Base" = pred2, "LPM Full" = pred8))
+rownames(BaseFullLPMTbl) <- NULL
+```
+
+$$P(TeamWin_i = 1)^E = 0.50 + 0.83*ln(OffQBRating_i) - 1.38*ln(DefQBRating_i) + \epsilon $$
+
+$$P(TeamWin_i = 1)^E = 0.45 + 0.58*ln(OffQBRating_i) - 0.87*ln(DefQBRating_i)$$ $$ - 0.09*ln(OffSacks_i) - 0.41*D*ln(OffSacks_i) $$ $$ + 0.45*ln(OffRushYardsAVG_i) - 0.2*OffTurnovers_i*I(x<0.8)$$ $$ + 0.11*OffTurnovers_i*I(0.8 \le x<3) - 0.09*OffTurnovers_i*I(3 \le x)$$ $$+ 0.15*DefSacks_i*I(x<1.6) - 0.14*DefSacks_i*I(x \le 1.6) + \epsilon  $$
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+BaseFullLPMTbl %>% kable()
+
+```
+
+The full model however, seems to outperform the base-model, achieving lower Brier-Scores & 3.3% higher prediction accuracy - obtained via classifying predicted win probabilities with the threshold 0.5. It also seems more satisfying conceptually, acknowledging that while NFL game outcomes not only depend on the 2 teams' QBs & how well can defenses slow down QBs, it is 2 of the most important determinants. For this reason, I choose the full LPM model to compare it in various forms. According to this model (noting only statistically significant results at 90% confidence):
+
+  - Teams whose quarterbacks achieve 10% higher Passer Rating than opponents can expect to win with 5.8% higher probability.
+  - Teams' defenses against whom quarterbacks achieve 10% higher Passer Rating than opponents can expect to win with 8.7% lower probability
+  - Teams who achieve 10% higher Average Yards/Rush than opponents can expect to win with 4.5% higher probability.
+  - Teams' Offenses who suffer 10% more sacks then opponents on average, can expect to win with 0.9% lower probability & if the away team' on average has suffered less sacks than the opponents, but not less then 1/5 of that of the opponent, they can expect to win with 5% lower probability.
+  - Teams' Offenses who lose the ball 10% more then opponents on average, can expect to win with 1.1% higher probability, assuming the away team' on average lost the ball less than 3 times-, but not less then 4/5th as much as the opponent.
+  - Teams' Defenses who enforce 10% more sacks then opponents on average, can expect to win with 1.5% higher probability, assuming the away team' on average enforced not more then 1.6 times as many sacks as their opponent.
+    
+    
+**Full LPM vs Logit & Probit Models:** Comparing Model summary statistics to using the Logistic & Gaussian Cumulative Density Functions as link-functions improves the Brier-score minimally, & achieves lower Akaike & Bayesian Information Criterion scores, even though resulting in 1.3% loss of accuracy & very slight Bias for the Probit model. Comparing LPM coefficents & the Probit & Logit models' marginal effects, minimal differences are observable, largest being -0.07, for ln(DefQBRating), which implies the difference in expected win probability associated with a 10% difference between 2 teams' defensive performance vs quarterbacks is 0.7% model-to-model, indeed minimal. Though the Logit model boasts lower Brier-score & less bias, the Probit Model almost perfectly calibrated between the 20th & 80th percentile of predictions, & is therefore chosen as the final model to predict NFL game outcomes with.    
+
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+#### Probits & Logits ####
+  
+modelformraw <- formula(Team_Outcome ~ log(OFF_pass_RTG) + log(DEF_pass_RTG) + 
+                          OFF_pass_SACK_dummy*log(OFF_pass_SACK) +
+                          log(OFF_rush_AVG) + 
+                          lspline(OFF_Turnovers,c(0.8,3)) +
+                          lspline(DEF_pass_SACK,1.6) )
+
+
+#lpmfull <- lm (modelformraw, data = dfclean)
+#summary(lpmfull, vcov = sandwich)
+
+#### LOGIT ####
+#   alternatively: family='binomial' automatically gives you logit, but not probit...
+logit <- glm( modelformraw , data=dfclean, family=binomial(link="logit") )
+dfclean$pred8_logit <- predict.glm(logit, type="response")
+logit_marg <- logitmfx( modelformraw, data=dfclean, atmean=FALSE, robust = T)
+
+#### PROBIT ####
+probit <- glm( modelformraw , data=dfclean, family=binomial(link="probit") )
+dfclean$pred8_probit <- predict.glm(probit, type="response")
+probit_marg <- probitmfx( modelformraw, data=dfclean, atmean=FALSE, robust = T)
+#### Model Summ stats ####
+stats <- transpose(glance(lpmclean8))
+names(stats) <- "LPMFull"
+StatNames <- names(glance(lpmclean8))
+BaseStats <- cbind("Stats" = StatNames, round(stats,2))
+
+stats <- transpose(glance(probit))
+names(stats) <- "Probit"
+StatNames <- names(glance(probit))
+ProbStats <- cbind("Stats" = StatNames, round(stats,2))
+
+stats <- transpose(glance(logit))
+names(stats) <- "Logit"
+StatNames <- names(glance(logit))
+LogStats <- cbind("Stats" = StatNames, round(stats,2))
+
+LogProbTbl <- BaseStats[7:9,] %>% left_join(ProbStats[3:5,], by = "Stats") %>% 
+  left_join(LogStats[3:5,], by = "Stats")
+
+
+LogProbAcc <- as.data.frame(lapply(c("pred8","pred8_probit","pred8_logit"),function(x) {
+  tl <- list()
+  tl[[x]] <- round(sum(round(dfclean[x],0) == dfclean$Team_Outcome)/length(dfclean$Team_Outcome),3)*100
+  return(tl)
+}))
+LogProbAcc$Stats <- "Prediction Acc%"
+LogProbBriers <- as.data.frame(lapply(c("pred8","pred8_probit","pred8_logit"),function(x) {
+  tl <- list()
+  tl[[x]] <- round(sum(  (dfclean[c(x)]-dfclean[c("Team_Outcome")])^2)/count(dfclean[c("Team_Outcome")]),3)
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+LogProbBriers$Stats <- "Brier-Score"
+LogProbBias <- as.data.frame(lapply(c("pred8","pred8_probit","pred8_logit"), function(x) {
+  tl <- list()
+  Pred <- sum(dfclean[c(x)]) / count(dfclean[c(x)])
+  Act <- sum(dfclean[c("Team_Outcome")]) / count(dfclean[c("Team_Outcome")])
+  
+  tl[[x]] <- round(Pred - Act,3)
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+LogProbBias$Stats <- "Bias"
+
+LogProbTbl <- rbind(LogProbTbl
+,LogProbBias %>% dplyr::select(Stats,pred8,pred8_probit,pred8_logit) %>% 
+  rename("LPMFull" = pred8, "Logit" = pred8_logit, "Probit" = pred8_probit)
+,LogProbBriers %>% dplyr::select(Stats,pred8,pred8_probit,pred8_logit) %>% 
+  rename("LPMFull" = pred8, "Logit" = pred8_logit, "Probit" = pred8_probit)
+,LogProbAcc %>% dplyr::select(Stats,pred8,pred8_probit,pred8_logit) %>% 
+        rename("LPMFull" = pred8, "Logit" = pred8_logit, "Probit" = pred8_probit))
+
+rownames(LogProbTbl) <- NULL
+LogProbTbl %>% kable()
+
+#### Coeffs Table - Appendices ####
+LPM <- cbind("Variables" = rownames(summary(lpmclean8)[['coefficients']])
+      ,as.data.frame(round(summary(lpmclean8)[['coefficients']],2)[,c(1,2)] ) %>% mutate("Index" = 1:12))
+
+Logit <- as.data.frame(round(logit_marg$mfxest,2)[,c(1,2)]) %>% mutate("Index" = 2:12)
+Probit <- as.data.frame(round(probit_marg$mfxest,2)[,c(1,2)]) %>% mutate("Index" = 2:12)
+
+colnames(LPM)[2:3] <- c("LPM_Coeffs","LPM_SE") 
+colnames(Logit)[1:2] <- c("Logit_M_Effs","Logit_SE")
+colnames(Probit)[1:2] <- c("Probit_M_Effs","Probit_SE")
+
+LPM <- LPM %>% left_join(Probit) %>% left_join(Logit) %>% dplyr::select(-Index)
+LPM$Variables <- c("Constant","ln(OffQBRating)","ln(DefQBRating)"
+                   ,"OffSackDummy","ln(OffSacks)","ln(OffRushYardsAVG)"
+                   ,"PLS(OffTurnovers)-<0.8","PLS(OffTurnovers)-0.8< x <3","PLS(OffTurnovers)>3"
+                   ,"PLS(DefSacks)<1.6","PLS(DefSacks)>1.6","OffSackDummy * ln(OffSacks)")
+
+#### Prediction Plots ####
+PredsPlot <- dfclean %>% ggplot(aes(x = pred8)) +
+  geom_point(aes(y = pred8_logit, color = "Logit"), size = 0.5) +
+  geom_point(aes(y = pred8_probit, color = "Probit"), size = 0.5) +
+  geom_line(aes(y = pred8, color = "45Degree Line")) +
+  theme(legend.position = c(0.85,0.2)
+        ,legend.title = element_text(size = 10)
+        ,legend.text = element_text(size = 9)
+        ,legend.key.size = unit(6,"mm")
+        #        ,legend. = element_rect(size = 1)
+        ,plot.title = element_text(face = "italic",size = 12)
+        ,plot.title.position = "panel"
+        ,axis.title = element_text(size = 9)
+        ,axis.text.x = element_text(angle = 30, size = 7)
+        ,axis.text.y = element_text(size = 7)) + 
+  scale_y_continuous(expand = c(0.01,0.01),limits = c(0,1)) +
+  scale_x_continuous(expand = c(0.01,0.01),limits = c(0,1)) +
+  labs(title = "Probability Predictions Comparison "
+       ,x = "Full LPM Model Predictions", y = "All Model Predictions")
+
+```
+
+
+```{r, message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 2}
+####  CALIBRATION CURVES  ####
+GetCalibrationCurve <- function(df, outcome, chosenmodel, Nr_groups) {
+  actual_vs_predicted <- df[c(outcome, chosenmodel)]
+  num_groups <- Nr_groups
+  actual_vs_predicted$predicted <- df[c(chosenmodel)]
+  actual_vs_predicted$actual <- df[c(outcome)]
+  
+  calibration_d <- actual_vs_predicted %>%
+    mutate(predicted_score_group = dplyr::ntile(predicted, num_groups))%>%
+    group_by(predicted_score_group) %>%
+    dplyr::summarise(mean_actual = (sum(actual)/count(actual)), 
+                     mean_predicted = (sum(predicted)/count(predicted)), 
+                     num_obs = n())
+  
+  ggplot( calibration_d,aes(x = mean_actual$n, y = mean_predicted$n)) +
+    geom_point( color='red', size=1.5, alpha=0.8) +
+    geom_line(  color='red', size=1  , alpha=0.8) +
+    geom_abline( intercept = 0, slope = 1, color='blue') +
+    labs( x = "Actual event probability", y = "Predicted event probability") +
+    scale_x_continuous(expand = c(0.01,0.01), limits = c(0,1), breaks = seq(0,1,0.1)) +
+    scale_y_continuous(expand = c(0.01,0.01), limits = c(0,1), breaks = seq(0,1,0.1))  
+}
+
+LPMCalib  <- GetCalibrationCurve(dfclean,"Team_Outcome","pred8",10) +
+  labs(title = "Calibration Curve Full LPM Model")
+LogCalib  <- GetCalibrationCurve(dfclean,"Team_Outcome","pred8_logit",10) +
+  labs(title = "Calibration Curve Logit Model")
+ProbCalib <- GetCalibrationCurve(dfclean,"Team_Outcome","pred8_probit",10) +
+  labs(title = "Calibration Curve Probit Model")
+
+grid.arrange(LPMCalib,ProbCalib,LogCalib, ncol = 3)
+```
+
+**Robustness Check:** As part of the effort to generalize association patterns between various NFL game statistics & game outcomes, the obvious counter-argument with the model above is the fact that it uses data from 2020. Covid-19 continues to impact every aspect of life & the NFL is no different. Games are played behind closed doors, teams could not hold similar training camps vs previous years (e.g. there were no pre-season games) & any players can become unavailable to play due to getting infected. The former may be a reason why no bias towards home team wins is observable, while lack of training camp & the risk of getting infected may lead to less predictability. These factors warrant to re-estimate the chosen probit model using data from the 2019 Season, to compare deviations in coefficients. Based on the table below, apart from the 2 Passer Rating related variables, no explanatory variable remained statistically significant at 10% significance, suggesting the model-formula as specified above not to be robust. the 2 passer rating variables however are robust, as they do not differ statistically significantly 10% significance. On another note the model remained unbiased, though boasting 6.2% lower prediction accuracy. 
+
+
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+dftest$OFF_pass_SACK_dummy <- ifelse(log(dftest$OFF_pass_SACK) >= -0.2 & 
+                                       log(dftest$OFF_pass_SACK) <= 1,1,0)
+
+probit19 <- glm( modelformraw , data=dftest, family=binomial(link="probit") )
+dftest$pred8_probit <- predict.glm(probit19, type="response")
+probit_marg19 <- probitmfx( modelformraw, data=dftest, atmean=FALSE, robust = T)
+
+#### Model Summ stats ####
+stats <- transpose(glance(probit19))
+names(stats) <- "Probit LY"
+StatNames <- names(glance(probit19))
+BaseStats <- cbind("Stats" = StatNames, round(stats,2))
+
+stats <- transpose(glance(probit))
+names(stats) <- "Probit"
+StatNames <- names(glance(probit))
+ProbStats <- cbind("Stats" = StatNames, round(stats,2))
+ProbitRobustness <- BaseStats %>% left_join(ProbStats, by = "Stats")
+
+df <- data.frame(dfclean[c("Team_Outcome","pred8_probit")],dftest[c("Team_Outcome","pred8_probit")])
+colnames(df) <- c("Y","Prob","Y_ly","Prob_ly")
+
+RobProbAcc <- as.data.frame(lapply(c("Prob","Prob_ly"),function(x) {
+  tl <- list()
+  if (x =="Prob") {
+    tl[[x]] <- round(sum(round(df[x],0) == df$Y)/length(df$Y),3)*100
+  } else {
+    tl[[x]] <- round(sum(round(df[x],0) == df$Y_ly)/length(df$Y_ly),3)*100
+  }
+  return(tl)
+}))
+RobProbAcc$Stats <- "Pred Acc%"
+RobProbBriers <- as.data.frame(lapply(c("Prob","Prob_ly"),function(x) {
+  tl <- list()
+if (x == "Prob") {
+  tl[[x]] <- round(sum(  (df[c(x)]-df[c("Y")])^2)/count(df[c("Y")]),3)
+} else {
+  tl[[x]] <- round(sum(  (df[c(x)]-df[c("Y_ly")])^2)/count(df[c("Y_ly")]),3)
+}
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+RobProbBriers$Stats <- "Brier Sc"
+RobProbBias <- as.data.frame(lapply(c("Prob","Prob_ly"), function(x) {
+  tl <- list()
+  Pred <- sum(df[c(x)]) / count(df[c(x)])
+  Act <- sum(df[which(colnames(df) == x)-1]) / count(df[which(colnames(df) == x)-1])
+  
+  tl[[x]] <- round(Pred - Act,3)
+  names(tl[[x]]) <- x
+  return(tl)
+}))
+RobProbBias$Stats <- "Bias"
+
+RobProbTbl <- rbind(
+ProbitRobustness
+,RobProbBias   %>% dplyr::select(Stats,Prob,Prob_ly) %>% rename("Probit" = Prob,"Probit LY"=Prob_ly)
+,RobProbAcc    %>% dplyr::select(Stats,Prob,Prob_ly) %>% rename("Probit" = Prob,"Probit LY"=Prob_ly)
+,RobProbBriers %>% dplyr::select(Stats,Prob,Prob_ly) %>% rename("Probit" = Prob,"Probit LY"=Prob_ly))
+
+Probit   <- as.data.frame(round(probit_marg$mfxest,2)[,c(1,2,4)]) %>% mutate("Index" = 2:12)
+Probit19 <- as.data.frame(round(probit_marg19$mfxest,2)[,c(1,2,4)]) %>% mutate("Index" = 2:12)
+colnames(Probit19)[1:3] <- c("MgEffly","SEly","P_ly")
+colnames(Probit)[1:3] <- c("MgEff","SE","P_Val")
+Probit <- Probit %>% left_join(Probit19, by = "Index") %>% dplyr::select(-Index)
+rownames(Probit) <- c("ln(OffQBRating)","ln(DefQBRating)"
+                      ,"OffSackDummy","ln(OffSacks)","ln(OffRushYardsAVG)"
+                      ,"PLS(OffTOs)-<0.8","PLS(OffTOs)-0.8< x <3","PLS(OffTOs)>3"
+                      ,"PLS(DefSacks)<1.6","PLS(DefSacks)>1.6"
+                      ,"OffSackDummy*ln(OffSacks)")
+
+colnames(RobProbTbl)[1] <- "Summ Stats"
+RobProbTbl$`Summ Stats` <- c("Null.Dev","df.null","logLik"
+                                   ,"AIC","BIC","deviance","df.res","NrObs"
+                                   ,"Bias","Pred Acc%","Brier Sc")
+RobProbTbl[2:3] <- round(RobProbTbl[2:3],2)
+
+
+cbind(Probit,RobProbTbl) %>% kable()
+
+
+```
+
+**External Validity:** The final consideration is to test model performance on a test sample, for comparability with previous research. To do so, Predictive Accuracy, Bias & the Brier Score are computed on the aforementioned data from the 2019 season. Note, for Predictive Accuracy a threshold value of 0.5 is used to obtain game outcomes for win probabilities & no distinction is made between false-positives & negatives, as there is no material difference for it for gambling purposes. As can be seen below, the model remained unbiased, yet achieved 6.25% lower accuracy during testing then on training data, incidentally exactly 1 less game per week. The 69.58% accuracy equals ca. 11/16 games (on an average week). This seems to rival recent NFL game prediction efforts, with Warner ([2010](http://www.cs.cornell.edu/courses/cs6780/2010fa/projects/warner_cs6780.pdf)) achieving 64.4% with a Gaussian process model using 10 years' data, Shau ([2011](http://cs229.stanford.edu/proj2011/Shau-PredictingOutcomesOfNFLGames.pdf)) achieving 68.4% with Support Vector Machine (SVM) model using 41 years' data, & Owen & Galle ([2014](https://docplayer.net/56085578-Predicting-the-nfl-zachary-owen-and-virgile-galle.html)) achieving 68.6%, also with SVM & 5 years' data.
+
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+Test <- dftest %>% dplyr::select(Team_Outcome, pred8_probit) %>% 
+  mutate("Difference" =  pred8_probit - Team_Outcome) %>% 
+  summarise("Season"     = 2020,"Sample" = "Test"
+            ,"P(Win)"   = round(mean(Team_Outcome),3)
+            ,"Pred(Win)" = round(mean(pred8_probit),3)
+            ,"PredAcc%"  = round((sum(Team_Outcome == round(pred8_probit,0))/length(Team_Outcome))*100,2)
+            ,"Brier"     = round(mean(Difference^2),3)
+            ,"Bias"      = `Pred(Win)` - `P(Win)` )
+
+Train <- dfclean %>% dplyr::select(Team_Outcome, pred8_probit) %>% 
+  mutate("Difference" =  pred8_probit - Team_Outcome) %>% 
+  summarise("Season"     = 2019,"Sample" = "Training"
+            ,"P(Win)"    = round(mean(Team_Outcome),3)
+            ,"Pred(Win)" = round(mean(pred8_probit),3)
+            ,"PredAcc%"  = round((sum(Team_Outcome == round(pred8_probit,0))/length(Team_Outcome))*100,2)
+            ,"Brier"     = round(mean(Difference^2),3)
+            ,"Bias"      = `Pred(Win)` - `P(Win)` )
+
+ExtVal <- Test %>% add_row(Train)  
+
+ExtVal %>% kable()
+
+```
+
+
+
+
+
+
+$\vspace{0.1cm}$
+
+## Appendices
+
+### 1) Raw & Log-Transformed Histograms
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+Hists1_5 <- grid.arrange(ho1,hd1,ho2,hd2,ho3,hd3,ho4,hd4,ho5,hd5,ncol = 2)
+Hists6_10 <- grid.arrange(ho6,hd6,ho7,hd7,ho8,hd8,ho9,hd9,ho10,hd10,ncol = 2)
+Hists11_15 <- grid.arrange(ho11,hd11,ho12,hd12, ho13,hd13,ho14,hd14,ho15,hd15,ncol = 2)
+
+```
+
+### 2) Variable Correlogram
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+grid.arrange(Corrplot1,ncol = 1)
+
+```
+
+### 3) Association Patterns & Functional Approximations
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+Fxs1_5   <- grid.arrange(fo1,fd1,fo2,fd2,fo3,fd3,fo4,fd4,fo5,fd5,ncol = 2)
+Fxs6_10  <- grid.arrange(fo6,fd6,fo7,fd7,fo8,fd8,fo9,fd9,fo10,fd10,ncol = 2)
+Fxs11_15 <- grid.arrange(fo11,fd11,fo12,fd12, fo13,fd13,fo14,fd14,fo15,fd15,ncol = 2)
+
+```
+
+### 4) Base vs Full LPM Model Coefficients table
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+
+ModelSumm %>% kable()
+
+```
+
+
+### 5) LPM Coefficients, Logit & Probit Marginal Effects table
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 10}
+
+LPM %>% kable()
+
+```
+
+### 6) Predicted Probabilities Comparison - LPM Full, Logit & Probit models
+```{r , message = F,warning = F, echo = FALSE, fig.align='center' , fig.height= 3}
+
+grid.arrange(PredsPlot, ncol = 1)
+
+```
