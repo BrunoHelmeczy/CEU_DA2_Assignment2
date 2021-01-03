@@ -9,7 +9,7 @@ source('Codes/Get_Game_Outcomes.R')
 # GetNFLTeamStatsYTD(2020)
 
 
-GamesScores <- GetGameScores(15)
+GamesScores <- GetGameScores(16)
 
 #### GAMES DATASET ####
 # 1 Observation = 1 game 
@@ -56,6 +56,7 @@ for (i in 1:(length(GamesScores$Winning_Team))) {
 GamesScores <- GamesScores %>% dplyr::select(Team, Opponent, Team_Outcome, Team_Score, Opp_Score, Winner, Week  ) %>% 
   mutate(Difference = Team_Score - Opp_Score)
 
+table(GamesScores$Team_Outcome)
 ## 3) Transform Team Names to for Joins
   TeamNames <- unlist(lapply(GamesScores$Team,function(x) {
     x <- gsub(".NYJ"," Jets", x)
