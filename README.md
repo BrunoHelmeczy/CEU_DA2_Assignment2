@@ -20,10 +20,13 @@ The assignment investigated the patters of association between the outcomes of 2
 
 ### Codes folder:
 The codes folder includes the following:
-- **Get_Game_Outcomes.R:** R function to scrape ESPN.com, to collect game outcomes used for analysis. The function takes a Year & Week Nr. as inputs, returning a dataframe of game score for the 1st specified number of weeks of the chosen season.
-- **Get_Team_Stats_YTD.R:** R function to scrape ESPN.com, to collect year-to-date team statistics of every NFL team as of the time of running the function. Takes Year as input,  returning a dataframe of year-to-date accumulated statistics per team of the chosen season.
+- **Get_Game_Outcomes.R:** R function to scrape ESPN.com, to collect game outcomes used for analysis. 
+  - The function takes a Year & Week Nr. as inputs, returning a dataframe of game score for the 1st specified number of weeks of the chosen season.
+- **Get_Team_Stats_YTD.R:** R function to scrape ESPN.com, to collect year-to-date team statistics of every NFL team as of the time of running the function. 
+  - Takes Year as input,  returning a dataframe of year-to-date accumulated statistics per team of the chosen season.
 - **Clean_n_Merge_YTD_n_GamesStats.R:** R script of the data cleaning steps to obtain cleaned dataset found in the Data/Clean sub-folder.
-- **F_x_Clean_n_Merge_Dataset.R:** R function to easen to data cleaning process. Takes **Get_Game_Outcomes.R's** & **Get_Team_Stats_YTD.R's** outputs as inputs, to return the cleaned datasets of the form found under the Data/Clean sub-folder.
+- **F_x_Clean_n_Merge_Dataset.R:** R function to easen to data cleaning process. 
+  - Takes **Get_Game_Outcomes.R's** & **Get_Team_Stats_YTD.R's** outputs as inputs, to return the cleaned datasets of the form found under the Data/Clean sub-folder.
 - **NFLGameStats_ProbabilityAnalysis.R:** R script, 1st sketch of all analysis used in this project.
 - **DA2_Ass2_Report.Rmd:** Finalized analysis structure of project with added text interpretations. Analysis results & reports are fully replicable with this Rmd file.
 
