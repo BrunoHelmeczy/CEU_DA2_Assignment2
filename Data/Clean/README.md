@@ -1,6 +1,6 @@
 # CEU_DA2_Assignment2
 
-This repository folder contains the cleaned NFL Games' & year-to-date NFL team statstics data, obtained from ESPN.com.
+This repository folder contains the cleaned NFL Games' & year-to-date NFL team statstics data, obtained from ESPN.com. Data was saved in both CSV & RDS formats, for convenience. Furthermore, 2020 data comprised the training dataset, & 2019 data was used for robustness check & model testing purposes.
 
 The data cleaning process was executed with the **Clean_n_Merge_YTD_n_GamesStats.R** R script, & operationalized with the **F_x_Clean_n_Merge_Dataset.R** R function, both available under this repositorys' Codes sub-folder. Its' Main points are summarized below:
 
