@@ -1,29 +1,24 @@
 # CEU_DA2_Assignment_1
 
-This repository folder contains the cleaned Covid-19 & Country Population data, obtained from Johns Hopkins Universitys' Centre for Systems Science and Engineering (JHU CSSE) & World Banks'- World Development Indicators respectively.
+This repository folder contains the cleaned NFL Games' & year-to-date NFL team statstics data, obtained from ESPN.com.
 
-The data cleaning process was executed using the **Clean_n_Merge_Covid_n_Pop_data** R script, available under this repositorys' Codes sub-folder. Its' Main points are summarized below:
+The data cleaning process was executed with the **Clean_n_Merge_YTD_n_GamesStats.R** R script, & operationalized with the **F_x_Clean_n_Merge_Dataset.R** R function, both available under this repositorys' Codes sub-folder. Its' Main points are summarized below:
 
-**Covid Data:**
+**NFL Games Data:**
 
- - Remove all variables except Country_Region, Confirmed, Deaths, Recovered, * Active
- - Aggregate figures to country-level totals
- - Rename Country_Region column, to Country
+ - Derive Home & Away Teams from ESPN's format & rename these to Away & Home teams' respectively.
+ - Convert Winner-Loser scores to Home & Away teams' scores.
+ - Keep only Team, Opponent, their scores, Winners' location & calculate margin of victory/loss
+ - Renomve franchise names Team/Opponent names except where more teams are present in a city (LA Rams, LA Chargers, NY Jets, NY Giants)
  
-**Population Data:**
+**Year-to-Date NFL Team Stats Data:**
 
- - Remove various geographical-region aggregations, all containing figures in iso2c column
- - Remove further grouped observations, e.g. OECD members
- - Rename variables to "Country" & "Population"
+ - Renomve franchise names Team/Opponent names except where more teams are present in a city (LA Rams, LA Chargers, NY Jets, NY Giants)
+ - Transform year-to-date statistics to per game basis
  
 **Merging**
   
- - Full-Join Pre-processed Covid & Population data
- - Loop through mistakenly unmatched data to correct country names, e.g. "US" -> "United States"
+ - Left-Join Year-to-Date statistics for Home Teams
+ - Left-Join Year-to-Date statistics for Away Teams
+ - Divide Away Teams' per Game Statistics with Home Teams' respective Statistics 
  
- 
-**Handle Missing Values & Scale Variables**
-
- - Remove observations missing either of the following variables' values: Confirmed, Death, Recovered, Active, Population
- - Divide observation values by 1.000 for Confirmed, Death, Recovered, Active variables
- - Divide observation values by 1.000.000 for Population variable
