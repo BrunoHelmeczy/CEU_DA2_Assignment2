@@ -3,8 +3,8 @@ title: "Predicting NFL Game outcomes using Probability models"
 author: "Bruno Helmeczy"
 date: "03/01/2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -1009,7 +1009,7 @@ ExtVal %>% kable()
 ```
 
 
-
+**Summary:** This report investigated the assocation patterns between NFL games' outcomes & opposing teams' year-to-date statistics. Model fitting using 2020 data concluded that a Probit model incorporating Offensive & Defensive Passer Ratings, Sacks suffered, Offensive Rushing Yards per Attempt, Offensive Turnovers & Sack enforced is best representative, however only Offensive & Defensive Passer Ratings remained robust, when re-estimated on 2019 data. For external validity, the Probit model estimated on 2020 data was tested on 2019 data. While predicting 75.8% of NFL game outcomes accurately in-sample, on test data the model was 69.6% accurate, rivaling many Machine Learning & Neural Network-based prediction efforts.  
 
 
 
