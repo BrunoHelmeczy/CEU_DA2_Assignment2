@@ -1,4 +1,4 @@
-# CEU_DA2_Assignment_1
+# CEU_DA2_Assignment2
 
 This repository folder contains the cleaned NFL Games' & year-to-date NFL team statstics data, obtained from ESPN.com.
 
