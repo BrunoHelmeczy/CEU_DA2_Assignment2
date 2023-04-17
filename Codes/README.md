@@ -16,13 +16,6 @@ This repository folder contains 3 R-Scripts, together with the final Assignment 
  - Aggregate year-to-date data
  - Return Aggregated data as dataframe
 
- - Remove Covid-19 variables except Country_Region, Confirmed, Deaths, Recovered,  Active
- - Aggregate Covid-19 figures to country-level totals
- - Retain only Country-level Population Data
- - Full-Join Covid & Population data & correct mistakenly unmatching values
- - Remove observations with Missing Values & Scale Variables
- - Write into csv file (available under Data/Clean sub-folder)
-
 **3) Clean_n_Merge_YTD_n_GamesStats.R**
   - Rename Home & Away teams to "Team" & "Opponent" Respectively
   - Calculate Outcome variable & convert Winner-Loser format from ESPN to Team-Opponent scores
